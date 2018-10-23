@@ -31,7 +31,7 @@ def get_countriesdata(countries_url, downloader):
     countries = dict()
 
     for row in downloader.get_tabular_rows(countries_url, dict_rows=True, headers=1, format='csv'):
-        countries[row['Country Code']] = (row['ISO3 Code'], row['Country'])
+        countries[row['Country Code']] = (row['ISO3 Code'], row['Country'].strip())
     return countries
 
 
@@ -102,7 +102,7 @@ def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata
             dataset['title'] = title
             dataset.update_from_yaml()
             notes = dataset['notes']
-            dataset['notes'] = '%s\n%s' % (notes, indicatortypedata['DatasetDescription'])
+            dataset['notes'] = '%s\n\n\n%s' % (notes, indicatortypedata['DatasetDescription'])
             dataset.add_country_location(countryname)
             earliest_year = 10000
             latest_year = 0
