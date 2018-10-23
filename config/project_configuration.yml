@@ -1,0 +1,6 @@
+# Collector specific configuration
+filelist_url: "http://fenixservices.fao.org/faostat/static/bulkdownloads/datasets_E.json"
+country_group_url: "config/FAOSTAT_CountryGroups.csv"
+dataset_codes:
+  FS: "Food Security"
+showcase_base_url: "http://www.fao.org/faostat/en/#country/"
