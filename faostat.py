@@ -31,7 +31,7 @@ def get_countriesdata(countries_url, downloader):
     countries = dict()
 
     for row in downloader.get_tabular_rows(countries_url, dict_rows=True, headers=1, format='csv'):
-        countries[row['Country Code']] = (row['ISO3 Code'], row['Country'].strip())
+        countries[row['Country Code'].strip()] = (row['ISO3 Code'].strip(), row['Country'].strip())
     return countries
 
 
