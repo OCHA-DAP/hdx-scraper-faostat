@@ -60,22 +60,22 @@ def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata
     rows = None
     datasets = list()
     showcases = list()
-    headers = deepcopy(downloader.response.headers)
-    for i, header in enumerate(headers):
-        if 'year' in header.lower():
-            headers.insert(i, 'EndYear')
-            headers.insert(i, 'StartYear')
-            break
-    headers.insert(0, 'Iso3')
-    hxlrow = dict()
-    for header in headers:
-        hxlrow[header] = hxltags.get(header, '')
 
     def output_csv():
         if rows is None:
             return
-        filepath = join(tmpdir, '%s_%s.csv' % (indicatorname, countrycode))
+        headers = deepcopy(downloader.response.headers)
+        for i, header in enumerate(headers):
+            if 'year' in header.lower():
+                headers.insert(i, 'EndYear')
+                headers.insert(i, 'StartYear')
+                break
+        headers.insert(0, 'Iso3')
+        hxlrow = dict()
+        for header in headers:
+            hxlrow[header] = hxltags.get(header, '')
         rows.insert(0, hxlrow)
+        filepath = join(tmpdir, '%s_%s.csv' % (indicatorname, countrycode))
         write_list_to_csv(rows, filepath, headers=headers)
         ds = datasets[-1]
         ds.set_dataset_year_range(earliest_year, latest_year)
