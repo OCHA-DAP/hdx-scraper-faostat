@@ -72,22 +72,22 @@ def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata
         hxlrow[header] = hxltags.get(header, '')
 
     def output_csv():
-        if countrycode is not None:
-            filepath = join(tmpdir, '%s_%s.csv' % (indicatorname, countrycode))
-            rows.insert(0, hxlrow)
-            write_list_to_csv(rows, filepath, headers=headers)
-            ds = datasets[-1]
-            ds.set_dataset_year_range(earliest_year, latest_year)
-            ds.resources[0].set_file_to_upload(filepath)
+        if rows is None:
+            return
+        filepath = join(tmpdir, '%s_%s.csv' % (indicatorname, countrycode))
+        rows.insert(0, hxlrow)
+        write_list_to_csv(rows, filepath, headers=headers)
+        ds = datasets[-1]
+        ds.set_dataset_year_range(earliest_year, latest_year)
+        ds.resources[0].set_file_to_upload(filepath)
 
     for row in downloader.get_tabular_rows(indicatortypedata['FileLocation'], dict_rows=True, headers=1, format='csv',
                                            encoding='ISO 8859-1'):
         newcountry = row['Area Code']
         if newcountry != countrycode:
             output_csv()
-            rows = list()
+            rows = None
             countrycode = newcountry
-            dataset = Dataset(deepcopy(dataset_template.data))
             result = countriesdata.get(countrycode)
             if result is None:
                 logger.warning('Ignoring %s' % countrycode)
@@ -97,10 +97,12 @@ def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata
             if countryname is None:
                 logger.error('Missing country %s: %s, %s' % (countrycode, cn, iso3))
                 continue
+            rows = list()
             title = '%s - %s Indicators' % (countryname, indicatorname)
             logger.info('Generating dataset: %s' % title)
             name = 'FAOSTAT %s indicators for %s' % (countryname, indicatorname)
             slugified_name = slugify(name).lower()
+            dataset = Dataset(deepcopy(dataset_template.data))
             dataset['name'] = slugified_name
             dataset['title'] = title
             dataset.update_from_yaml()
@@ -143,6 +145,7 @@ def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata
                 earliest_year = year
             if year > latest_year:
                 latest_year = year
-        rows.append(row)
+        if rows is not None:
+            rows.append(row)
     output_csv()
     return datasets, showcases
