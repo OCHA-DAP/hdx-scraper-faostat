@@ -60,28 +60,31 @@ def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata
     rows = None
     datasets = list()
     showcases = list()
+    headers = deepcopy(downloader.response.headers)
+    for i, header in enumerate(headers):
+        if 'year' in header.lower():
+            headers.insert(i, 'EndYear')
+            headers.insert(i, 'StartYear')
+            break
+    headers.insert(0, 'Iso3')
+    hxlrow = dict()
+    for header in headers:
+        hxlrow[header] = hxltags.get(header, '')
+
+    def output_csv():
+        if countrycode is not None:
+            filepath = join(tmpdir, '%s_%s.csv' % (indicatorname, countrycode))
+            rows.insert(0, hxlrow)
+            write_list_to_csv(rows, filepath, headers=headers)
+            ds = datasets[-1]
+            ds.set_dataset_year_range(earliest_year, latest_year)
+            ds.resources[0].set_file_to_upload(filepath)
+
     for row in downloader.get_tabular_rows(indicatortypedata['FileLocation'], dict_rows=True, headers=1, format='csv',
                                            encoding='ISO 8859-1'):
         newcountry = row['Area Code']
         if newcountry != countrycode:
-            if countrycode is not None:
-                filepath = join(tmpdir, '%s_%s.csv' % (indicatorname, countrycode))
-                headers = deepcopy(downloader.response.headers)
-                for i, header in enumerate(headers):
-                    if 'year' in header.lower():
-                        headers.insert(i, 'EndYear')
-                        headers.insert(i, 'StartYear')
-                        break
-                headers.insert(0, 'Iso3')
-                hxlrow = dict()
-                for header in headers:
-                    hxlrow[header] = hxltags.get(header, '')
-                rows.insert(0, hxlrow)
-                write_list_to_csv(rows, filepath, headers=headers)
-                ds = datasets[-1]
-                ds.set_dataset_year_range(earliest_year, latest_year)
-                ds.resources[0].set_file_to_upload(filepath)
-
+            output_csv()
             rows = list()
             countrycode = newcountry
             dataset = Dataset(deepcopy(dataset_template.data))
@@ -141,5 +144,5 @@ def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata
             if year > latest_year:
                 latest_year = year
         rows.append(row)
-
+    output_csv()
     return datasets, showcases
