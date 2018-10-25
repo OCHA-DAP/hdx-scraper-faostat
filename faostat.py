@@ -23,7 +23,8 @@ from slugify import slugify
 logger = logging.getLogger(__name__)
 
 hxltags = {'Iso3': '#country+code+v_iso3', 'Area': '#country+name', 'Item Code': '#indicator+code',
-           'Item': '#indicator+name', 'StartYear': '#date+start', 'EndYear': '#date+end', 'Unit': '#indicator+type',
+           'Item': '#indicator+name', 'StartYear': '#date+year+start', 'EndYear': '#date+year+end',
+           'Unit': '#indicator+type',
            'Value': '#indicator+num'}
 
 
