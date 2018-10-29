@@ -38,6 +38,7 @@ def main():
             logger.info('Number of datasets to upload: %d' % len(datasets))
             for i, dataset in enumerate(datasets):
                 logger.info('Creating dataset: %s' % dataset['title'])
+                dataset.preview_off()
                 dataset.create_in_hdx()
                 showcase = showcases[i]
                 showcase.create_in_hdx()
