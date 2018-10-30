@@ -1,7 +1,7 @@
 ### Collector for FAOSTAT Datasets
 [![Build Status](https://travis-ci.org/OCHA-DAP/hdxscraper-faostat.svg?branch=master&ts=1)](https://travis-ci.org/OCHA-DAP/hdxscraper-faostat) [![Coverage Status](https://coveralls.io/repos/github/OCHA-DAP/hdxscraper-faostat/badge.svg?branch=master&ts=1)](https://coveralls.io/github/OCHA-DAP/hdxscraper-faostat?branch=master)
 
-Script scrapes food security data from [FAOSTAT](http://www.fao.org/faostat/en/) website and uploads disaggregated by country to HDX.
+FAOSTAT script scrapes food security data from [FAOSTAT](http://www.fao.org/faostat/en/) website and uploads disaggregated by country to HDX.
 
 ### Usage
 python run.py
