@@ -83,7 +83,7 @@ def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata
         ds.resources[0].set_file_to_upload(filepath)
 
     for row in downloader.get_tabular_rows(indicatortypedata['FileLocation'], dict_rows=True, headers=1, format='csv',
-                                           encoding='ISO 8859-1'):
+                                           encoding='WINDOWS-1252'):
         newcountry = row['Area Code']
         if newcountry != countrycode:
             output_csv()
