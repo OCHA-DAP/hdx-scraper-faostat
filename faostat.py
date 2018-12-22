@@ -11,7 +11,6 @@ Reads FAOSTAT JSON and creates datasets.
 import logging
 from copy import deepcopy
 from os.path import join
-from tempfile import gettempdir
 
 from hdx.data.dataset import Dataset
 from hdx.data.resource import Resource
@@ -43,7 +42,8 @@ def get_indicatortypesdata(filelist_url, downloader):
     return {x['DatasetCode']: x for x in indicatortypeslist}
 
 
-def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata, countriesdata, showcase_base_url):
+def generate_datasets_and_showcases(downloader, folder, indicatorname, indicatortypedata,
+                                    countriesdata, showcase_base_url):
     dataset_template = Dataset()
     dataset_template.set_maintainer('196196be-6037-4488-8b71-d786adf4c081')
     dataset_template.set_organization('ed727a5b-3e6e-4cd6-b97e-4a71532085e6')
@@ -52,7 +52,6 @@ def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata
     tags = [indicatorname.lower()]
     dataset_template.add_tags(tags)
 
-    tmpdir = gettempdir()
     earliest_year = 10000
     latest_year = 0
     countrycode = None
@@ -76,7 +75,7 @@ def generate_datasets_and_showcases(downloader, indicatorname, indicatortypedata
         for header in headers:
             hxlrow[header] = hxltags.get(header, '')
         rows.insert(0, hxlrow)
-        filepath = join(tmpdir, '%s_%s.csv' % (indicatorname, countrycode))
+        filepath = join(folder, '%s_%s.csv' % (indicatorname, countrycode))
         write_list_to_csv(rows, filepath, headers=headers)
         ds = datasets[-1]
         ds.set_dataset_year_range(earliest_year, latest_year)
