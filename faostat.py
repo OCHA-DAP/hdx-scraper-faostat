@@ -106,8 +106,6 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
             dataset['name'] = slugified_name
             dataset['title'] = title
             dataset.update_from_yaml()
-            notes = dataset['notes']
-            dataset['notes'] = '%s\n\n\n%s' % (notes, indicatortypedata['DatasetDescription'])
             dataset.add_country_location(countryname)
             earliest_year = 10000
             latest_year = 0
@@ -122,7 +120,7 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
             showcase = Showcase({
                 'name': '%s-showcase' % slugified_name,
                 'title': title,
-                'notes': notes,
+                'notes': dataset['notes'],
                 'url': '%s%s' % (showcase_base_url, countrycode),
                 'image_url': 'http://www.fao.org/uploads/pics/food-agriculture.png'
             })
