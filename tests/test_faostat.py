@@ -91,7 +91,7 @@ class TestFaostat:
                                                                   TestFaostat.countrydata, 'http://zzz/')
             assert datasets[0] == {'maintainer': '196196be-6037-4488-8b71-d786adf4c081',
                                    'owner_org': 'ed727a5b-3e6e-4cd6-b97e-4a71532085e6', 'data_update_frequency': '365',
-                                   'subnational': '0', 'tags': [{'name': 'food security'}],
+                                   'subnational': '0', 'tags': [{'name': 'hxl'}, {'name': 'food security'}],
                                    'name': 'faostat-afghanistan-indicators-for-food-security',
                                    'title': 'Afghanistan - Food Security Indicators', 'license_id': 'cc-by-igo',
                                    'notes': 'FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics.',
@@ -106,4 +106,4 @@ class TestFaostat:
                                     'notes': 'FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics.',
                                     'url': 'http://zzz/2',
                                     'image_url': 'http://www.fao.org/uploads/pics/food-agriculture.png',
-                                    'tags': [{'name': 'food security'}]}
+                                    'tags': [{'name': 'hxl'}, {'name': 'food security'}]}

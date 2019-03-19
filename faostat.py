@@ -49,7 +49,7 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
     dataset_template.set_organization('ed727a5b-3e6e-4cd6-b97e-4a71532085e6')
     dataset_template.set_expected_update_frequency('Every year')
     dataset_template.set_subnational(False)
-    tags = [indicatorname.lower()]
+    tags = ['hxl', indicatorname.lower()]
     dataset_template.add_tags(tags)
 
     earliest_year = 10000
