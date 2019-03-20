@@ -16,7 +16,7 @@ from faostat import generate_datasets_and_showcases, get_indicatortypesdata, get
 
 logging_kwargs['smtp_config_yaml'] = join('config', 'smtp_configuration.yml')
 
-from hdx.facades.hdx_scraperwiki import facade
+from hdx.facades.simple import facade
 
 logger = logging.getLogger(__name__)
 
