@@ -7,14 +7,11 @@ Top level script. Calls other functions that generate datasets that this script 
 import logging
 from os.path import join, expanduser
 
-from hdx.facades import logging_kwargs
 from hdx.hdx_configuration import Configuration
 from hdx.utilities.downloader import Download
 from hdx.utilities.path import temp_dir
 
 from faostat import generate_datasets_and_showcases, get_indicatortypesdata, get_countriesdata
-
-logging_kwargs['smtp_config_yaml'] = join('config', 'smtp_configuration.yml')
 
 from hdx.facades.simple import facade
 
