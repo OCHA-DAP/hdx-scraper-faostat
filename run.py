@@ -39,7 +39,7 @@ def main():
                 for i, dataset in enumerate(datasets):
                     logger.info('Creating dataset: %s' % dataset['title'])
                     dataset.preview_off()
-                    dataset.create_in_hdx()
+                    dataset.create_in_hdx(remove_additional_resources=True, hxl_update=False)
                     showcase = showcases[i]
                     showcase.create_in_hdx()
                     showcase.add_dataset(dataset)
