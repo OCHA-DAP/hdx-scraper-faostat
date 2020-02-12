@@ -13,7 +13,7 @@ from hdx.hdx_locations import Locations
 from hdx.location.country import Country
 from hdx.utilities.path import temp_dir
 
-from faostat import generate_datasets_and_showcases, get_countriesdata, get_indicatortypesdata
+from faostat import generate_datasets_and_showcases, get_countries, get_indicatortypes
 
 
 class TestFaostat:
@@ -60,9 +60,11 @@ class TestFaostat:
             @staticmethod
             def get_tabular_rows(url, **kwargs):
                 if url == 'http://yyy/':
-                    return [{'Country Code': '2', 'ISO3 Code': 'AFG', 'Country': 'Afghanistan'}]
+                    return ['Country Code', 'ISO3 Code', 'Country'], [{'Country Code': '2', 'ISO3 Code': 'AFG', 'Country': 'Afghanistan'}]
                 elif url == TestFaostat.fsurl:
-                    return [{'Area Code': '2', 'Area': 'Afghanistan', 'Item Code': '21010',
+                    return ['Area Code', 'Area', 'Item Code', 'Item', 'Element Code', 'Element', 'Year Code', 'Year',
+                             'Unit', 'Value', 'Flag'], \
+                           [{'Area Code': '2', 'Area': 'Afghanistan', 'Item Code': '21010',
                              'Item': 'Average dietary energy supply adequacy (percent) (3-year average)',
                              'Element Code': '6121', 'Element': 'Value', 'Year Code': '19992001', 'Year': '1999-2001',
                              'Unit': '%', 'Value': '89.000000', 'Flag': 'F'},
@@ -81,12 +83,12 @@ class TestFaostat:
 
         return Download()
 
-    def test_get_indicatortypesdata(self, downloader):
-        indicatortypesdata = get_indicatortypesdata('http://xxx/', downloader)
+    def test_get_indicatortypes(self, downloader):
+        indicatortypesdata = get_indicatortypes('http://xxx/', downloader)
         assert indicatortypesdata == {'FS': TestFaostat.indicatortypedata}
 
-    def test_get_countriesdata(self, downloader):
-        countriesdata = get_countriesdata('http://yyy/', downloader)
+    def test_get_countries(self, downloader):
+        countriesdata = get_countries('http://yyy/', downloader)
         assert countriesdata == {'2': ('AFG', 'Afghanistan')}
 
     def test_generate_dataset_and_showcase(self, configuration, downloader):

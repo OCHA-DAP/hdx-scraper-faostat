@@ -11,7 +11,7 @@ from hdx.hdx_configuration import Configuration
 from hdx.utilities.downloader import Download
 from hdx.utilities.path import temp_dir
 
-from faostat import generate_datasets_and_showcases, get_indicatortypesdata, get_countriesdata
+from faostat import generate_datasets_and_showcases, get_indicatortypesdata, get_countries
 
 from hdx.facades.simple import facade
 
@@ -29,7 +29,7 @@ def main():
     with temp_dir('faostat') as folder:
         with Download() as downloader:
             indicatortypes = get_indicatortypesdata(filelist_url, downloader)
-            countriesdata = get_countriesdata(country_group_url, downloader)
+            countriesdata = get_countries(country_group_url, downloader)
             logger.info('Number of indicator types to upload: %d' % len(dataset_codes))
             for dataset_code in dataset_codes:
                 datasets, showcases = generate_datasets_and_showcases(downloader, folder, dataset_codes[dataset_code],
@@ -39,7 +39,7 @@ def main():
                 for i, dataset in enumerate(datasets):
                     logger.info('Creating dataset: %s' % dataset['title'])
                     dataset.preview_off()
-                    dataset.create_in_hdx(remove_additional_resources=True, hxl_update=False)
+                    dataset.create_in_hdx(remove_additional_resources=True, hxl_update=False, updated_by_script='HDX Scraper: FAOStat')
                     showcase = showcases[i]
                     showcase.create_in_hdx()
                     showcase.add_dataset(dataset)

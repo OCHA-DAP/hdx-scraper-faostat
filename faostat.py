@@ -27,15 +27,16 @@ hxltags = {'Iso3': '#country+code+v_iso3', 'Area': '#country+name', 'Item Code':
            'Value': '#indicator+num'}
 
 
-def get_countriesdata(countries_url, downloader):
+def get_countries(countries_url, downloader):
     countries = dict()
 
-    for row in downloader.get_tabular_rows(countries_url, dict_rows=True, headers=1, format='csv'):
+    _, iterator = downloader.get_tabular_rows(countries_url, headers=1, dict_rows=True, format='csv')
+    for row in iterator:
         countries[row['Country Code'].strip()] = (row['ISO3 Code'].strip(), row['Country'].strip())
     return countries
 
 
-def get_indicatortypesdata(filelist_url, downloader):
+def get_indicatortypes(filelist_url, downloader):
     response = downloader.download(filelist_url)
     jsonresponse = response.json()
     indicatortypeslist = jsonresponse['Datasets']['Dataset']
@@ -52,8 +53,7 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
     tags = ['hxl', 'indicators', indicatorname.lower()]
     dataset_template.add_tags(tags)
 
-    earliest_year = 10000
-    latest_year = 0
+    years = set()
     countrycode = None
     iso3 = None
     countryname = None
@@ -76,9 +76,10 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
             hxlrow[header] = hxltags.get(header, '')
         rows.insert(0, hxlrow)
         filepath = join(folder, '%s_%s.csv' % (iname, countrycode))
-        write_list_to_csv(rows, filepath, headers=headers)
+        write_list_to_csv(filepath, rows, headers=headers)
         ds = datasets[-1]
-        ds.set_dataset_year_range(earliest_year, latest_year)
+        sorted_years = sorted(list(years))
+        ds.set_dataset_year_range(sorted_years[0], sorted_years[-1])
         rs = Resource({
             'name': '%s - %s' % (cname, iname),
             'description': 'HXLated csv containing %s indicators for %s' % (iname.lower(), cname)
@@ -87,8 +88,9 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
         rs.set_file_type('csv')
         ds.add_update_resource(rs)
 
-    for row in downloader.get_tabular_rows(indicatortypedata['FileLocation'], dict_rows=True, headers=1, format='csv',
-                                           encoding='WINDOWS-1252'):
+    headers, iterator = downloader.get_tabular_rows(indicatortypedata['FileLocation'], headers=1, dict_rows=True,
+                                                    format='csv', encoding='WINDOWS-1252')
+    for row in iterator:
         newcountry = row['Area Code']
         if newcountry != countrycode:
             output_csv(countryname, indicatorname)
@@ -113,8 +115,7 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
             dataset['title'] = title
             dataset.update_from_yaml()
             dataset.add_country_location(countryname)
-            earliest_year = 10000
-            latest_year = 0
+            years.clear()
 
             datasets.append(dataset)
             showcase = Showcase({
@@ -130,19 +131,15 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
         row['Area'] = countryname
         year = row['Year']
         if '-' in year:
-            years = year.split('-')
-            row['StartYear'] = years[0]
-            row['EndYear'] = years[1]
+            yearrange = year.split('-')
+            row['StartYear'] = yearrange[0]
+            row['EndYear'] = yearrange[1]
+            years.add(int(yearrange[0]))
+            years.add(int(yearrange[1]))
         else:
-            years = [year]
+            years.add(int(year))
             row['StartYear'] = year
             row['EndYear'] = year
-        for year in years:
-            year = int(year)
-            if year < earliest_year:
-                earliest_year = year
-            if year > latest_year:
-                latest_year = year
         if rows is not None:
             rows.append(row)
     output_csv(countryname, indicatorname)
