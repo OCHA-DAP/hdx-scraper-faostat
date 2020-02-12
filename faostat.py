@@ -71,9 +71,7 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
                 headers.insert(i, 'StartYear')
                 break
         headers.insert(0, 'Iso3')
-        hxlrow = dict()
-        for header in headers:
-            hxlrow[header] = hxltags.get(header, '')
+        hxlrow = downloader.hxl_row(headers, hxltags, dict_form=True)
         rows.insert(0, hxlrow)
         filepath = join(folder, '%s_%s.csv' % (iname, countrycode))
         write_list_to_csv(filepath, rows, headers=headers)

@@ -49,6 +49,10 @@ class TestFaostat:
                                 'Unit', 'Value', 'Flag']
 
             @staticmethod
+            def hxl_row(headers, hxltags, dict_form):
+                return {header: hxltags.get(header, '') for header in headers}
+
+            @staticmethod
             def download(url):
                 response = Response()
                 if url == 'http://xxx/':
