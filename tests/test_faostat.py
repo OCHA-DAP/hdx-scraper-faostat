@@ -7,11 +7,13 @@ Unit tests for FAOSTAT.
 from os.path import join
 
 import pytest
+from hdx.data.vocabulary import Vocabulary
 from hdx.hdx_configuration import Configuration
 from hdx.hdx_locations import Locations
+from hdx.location.country import Country
 from hdx.utilities.path import temp_dir
 
-from faostat import generate_datasets_and_showcases, get_countriesdata, get_indicatortypesdata
+from faostat import generate_datasets_and_showcases, get_countries, get_indicatortypes
 
 
 class TestFaostat:
@@ -29,6 +31,9 @@ class TestFaostat:
         Configuration._create(hdx_read_only=True, user_agent='test',
                               project_config_yaml=join('tests', 'config', 'project_configuration.yml'))
         Locations.set_validlocations([{'name': 'afg', 'title': 'Afghanistan'}])  # add locations used in tests
+        Country.countriesdata(use_live=False)
+        Vocabulary._tags_dict = True
+        Vocabulary._approved_vocabulary = {'tags': [{'name': 'hxl'}, {'name': 'food security'}, {'name': 'indicators'}], 'id': '4e61d464-4943-4e97-973a-84673c1aaa87', 'name': 'approved'}
 
     @pytest.fixture(scope='function')
     def downloader(self):
@@ -44,6 +49,10 @@ class TestFaostat:
                                 'Unit', 'Value', 'Flag']
 
             @staticmethod
+            def hxl_row(headers, hxltags, dict_form):
+                return {header: hxltags.get(header, '') for header in headers}
+
+            @staticmethod
             def download(url):
                 response = Response()
                 if url == 'http://xxx/':
@@ -55,9 +64,11 @@ class TestFaostat:
             @staticmethod
             def get_tabular_rows(url, **kwargs):
                 if url == 'http://yyy/':
-                    return [{'Country Code': '2', 'ISO3 Code': 'AFG', 'Country': 'Afghanistan'}]
+                    return ['Country Code', 'ISO3 Code', 'Country'], [{'Country Code': '2', 'ISO3 Code': 'AFG', 'Country': 'Afghanistan'}]
                 elif url == TestFaostat.fsurl:
-                    return [{'Area Code': '2', 'Area': 'Afghanistan', 'Item Code': '21010',
+                    return ['Area Code', 'Area', 'Item Code', 'Item', 'Element Code', 'Element', 'Year Code', 'Year',
+                             'Unit', 'Value', 'Flag'], \
+                           [{'Area Code': '2', 'Area': 'Afghanistan', 'Item Code': '21010',
                              'Item': 'Average dietary energy supply adequacy (percent) (3-year average)',
                              'Element Code': '6121', 'Element': 'Value', 'Year Code': '19992001', 'Year': '1999-2001',
                              'Unit': '%', 'Value': '89.000000', 'Flag': 'F'},
@@ -76,12 +87,12 @@ class TestFaostat:
 
         return Download()
 
-    def test_get_indicatortypesdata(self, downloader):
-        indicatortypesdata = get_indicatortypesdata('http://xxx/', downloader)
+    def test_get_indicatortypes(self, downloader):
+        indicatortypesdata = get_indicatortypes('http://xxx/', downloader)
         assert indicatortypesdata == {'FS': TestFaostat.indicatortypedata}
 
-    def test_get_countriesdata(self, downloader):
-        countriesdata = get_countriesdata('http://yyy/', downloader)
+    def test_get_countries(self, downloader):
+        countriesdata = get_countries('http://yyy/', downloader)
         assert countriesdata == {'2': ('AFG', 'Afghanistan')}
 
     def test_generate_dataset_and_showcase(self, configuration, downloader):
@@ -91,7 +102,7 @@ class TestFaostat:
                                                                   TestFaostat.countrydata, 'http://zzz/')
             assert datasets[0] == {'maintainer': '196196be-6037-4488-8b71-d786adf4c081',
                                    'owner_org': 'ed727a5b-3e6e-4cd6-b97e-4a71532085e6', 'data_update_frequency': '365',
-                                   'subnational': '0', 'tags': [{'name': 'hxl'}, {'name': 'food security'}],
+                                   'subnational': '0', 'tags': [{'name': 'hxl', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'indicators', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'food security', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}],
                                    'name': 'faostat-afghanistan-indicators-for-food-security',
                                    'title': 'Afghanistan - Food Security Indicators', 'license_id': 'cc-by-igo',
                                    'notes': 'FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics.',
@@ -100,10 +111,12 @@ class TestFaostat:
                                    'private': False, 'groups': [{'name': 'afg'}], 'dataset_date': '01/01/1999-12/31/2014'}
 
             resources = datasets[0].get_resources()
-            assert resources == [{'name': 'Afghanistan - Food Security Indicators', 'description': '', 'format': 'csv'}]
+            assert resources == [{'name': 'Afghanistan - Food Security', 'format': 'csv',
+                                  'description': 'HXLated csv containing food security indicators for Afghanistan',
+                                  'resource_type': 'file.upload', 'url_type': 'upload'}]
             assert showcases[0] == {'name': 'faostat-afghanistan-indicators-for-food-security-showcase',
                                     'title': 'Afghanistan - Food Security Indicators',
                                     'notes': 'FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics.',
                                     'url': 'http://zzz/2',
                                     'image_url': 'http://www.fao.org/uploads/pics/food-agriculture.png',
-                                    'tags': [{'name': 'hxl'}, {'name': 'food security'}]}
+                                    'tags': [{'name': 'hxl', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'indicators', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'food security', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}]}
