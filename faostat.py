@@ -73,18 +73,14 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
         headers.insert(0, 'Iso3')
         hxlrow = downloader.hxl_row(headers, hxltags, dict_form=True)
         rows.insert(0, hxlrow)
-        filepath = join(folder, '%s_%s.csv' % (iname, countrycode))
-        write_list_to_csv(filepath, rows, headers=headers)
         ds = datasets[-1]
-        sorted_years = sorted(list(years))
-        ds.set_dataset_year_range(sorted_years[0], sorted_years[-1])
-        rs = Resource({
+        ds.set_dataset_year_range(years)
+        filename = '%s_%s.csv' % (iname, countrycode)
+        resourcedata = {
             'name': '%s - %s' % (cname, iname),
             'description': 'HXLated csv containing %s indicators for %s' % (iname.lower(), cname)
-        })
-        rs.set_file_to_upload(filepath)
-        rs.set_file_type('csv')
-        ds.add_update_resource(rs)
+        }
+        dataset.generate_resource_from_rows(folder, filename, rows, resourcedata, headers=headers)
 
     headers, iterator = downloader.get_tabular_rows(indicatortypedata['FileLocation'], headers=1, dict_rows=True,
                                                     format='csv', encoding='WINDOWS-1252')
