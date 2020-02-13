@@ -10,13 +10,10 @@ Reads FAOSTAT JSON and creates datasets.
 
 import logging
 from copy import deepcopy
-from os.path import join
 
 from hdx.data.dataset import Dataset
-from hdx.data.resource import Resource
 from hdx.data.showcase import Showcase
 from hdx.location.country import Country
-from hdx.utilities.dictandlist import write_list_to_csv
 from slugify import slugify
 
 logger = logging.getLogger(__name__)
@@ -61,10 +58,12 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
     datasets = list()
     showcases = list()
 
+    headers, iterator = downloader.get_tabular_rows(indicatortypedata['FileLocation'], headers=1, dict_form=True,
+                                                    format='csv', encoding='WINDOWS-1252')
+
     def output_csv(cname, iname):
         if rows is None:
             return
-        headers = deepcopy(downloader.response.headers)
         for i, header in enumerate(headers):
             if 'year' in header.lower():
                 headers.insert(i, 'EndYear')
@@ -82,8 +81,6 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
         }
         dataset.generate_resource_from_rows(folder, filename, rows, resourcedata, headers=headers)
 
-    headers, iterator = downloader.get_tabular_rows(indicatortypedata['FileLocation'], headers=1, dict_form=True,
-                                                    format='csv', encoding='WINDOWS-1252')
     for row in iterator:
         newcountry = row['Area Code']
         if newcountry != countrycode:
