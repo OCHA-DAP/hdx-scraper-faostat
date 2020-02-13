@@ -30,7 +30,7 @@ hxltags = {'Iso3': '#country+code+v_iso3', 'Area': '#country+name', 'Item Code':
 def get_countries(countries_url, downloader):
     countries = dict()
 
-    _, iterator = downloader.get_tabular_rows(countries_url, headers=1, dict_rows=True, format='csv')
+    _, iterator = downloader.get_tabular_rows(countries_url, headers=1, dict_form=True, format='csv')
     for row in iterator:
         countries[row['Country Code'].strip()] = (row['ISO3 Code'].strip(), row['Country'].strip())
     return countries
@@ -82,7 +82,7 @@ def generate_datasets_and_showcases(downloader, folder, indicatorname, indicator
         }
         dataset.generate_resource_from_rows(folder, filename, rows, resourcedata, headers=headers)
 
-    headers, iterator = downloader.get_tabular_rows(indicatortypedata['FileLocation'], headers=1, dict_rows=True,
+    headers, iterator = downloader.get_tabular_rows(indicatortypedata['FileLocation'], headers=1, dict_form=True,
                                                     format='csv', encoding='WINDOWS-1252')
     for row in iterator:
         newcountry = row['Area Code']
