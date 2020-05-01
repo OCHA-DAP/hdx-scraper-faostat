@@ -1,5 +1,4 @@
 license_id: "cc-by-igo"
-notes: "FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics."
 caveats: "Reliability and accuracy depend on the sampling design and size of the basic variables and these might differ significantly between countries just as the use of data sources, definitions and methods. The accuracy of an indicator is very much dependent on the accuracy of the basic variables that make up the indicator."
 methodology: "Registry"
 dataset_source: "FAOSTAT"

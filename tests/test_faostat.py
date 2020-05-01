@@ -4,27 +4,30 @@
 Unit tests for FAOSTAT.
 
 '''
-from os.path import join
+import shutil
+from os.path import join, basename
 
 import pytest
 from hdx.data.vocabulary import Vocabulary
 from hdx.hdx_configuration import Configuration
 from hdx.hdx_locations import Locations
 from hdx.location.country import Country
+from hdx.utilities.compare import assert_files_same
 from hdx.utilities.path import temp_dir
 
-from faostat import generate_datasets_and_showcases, get_countries, get_indicatortypes
+from faostat import generate_dataset_and_showcase, get_countries, download_indicatorsets
 
 
 class TestFaostat:
-    countrydata = {'2': ('AFG', 'Afghanistan')}
-    fsurl = 'http://lala/Food_Security_Data.zip'
-    indicatortypedata = {'DatasetCode': 'FS', 'DatasetName': 'Food Security: Suite of Food Security Indicators',
-                         'Topic': 'See attached document which lists sector coverage with the respective indicator.',
-                         'DatasetDescription': 'For detailed description of the indicators below see attached document: Average Dietary Supply Adequacy; Average Value of Food Production; Share of Dietary Energy Supply Derived from Cereals, Roots and Tubers; Average Protein Supply; Average Supply of Protein of Animal Origin; Percent of paved roads over total roads; Road Density (per 100 square km of land area); Rail lines Density (per 100 square km of land area); Domestic Food Price Level Index; Percentage of Population with Access to Improved Drinking Water Sources; Percentage of Population with Access to Sanitation Facilities; Cereal Import Dependency Ratio; Percent of Arable Land Equipped for Irrigation; Value of Food Imports in Total Merchandise Exports; Political stability and absence of violence; Domestic Food Price Volatility Index; Per capita food production variability; Per capita food supply variability; Prevalence of Undernourishment; Share of Food Expenditures of the Poor; Depth of the Food Deficit; Prevalence of Food Inadequacy; Children aged <5 years wasted (%); Children aged <5 years stunted (%); Children aged <5 years underweight (%); Percentage of adults underweight in total adult population; Prevalence of anaemia among children under 5 years of age; Prevalence of Vitamin A deficiency in the population; Prevalence of Iodine deficiency; Prevalence of anaemia among pregnant women; Number of people undernourished; Minimum Dietary Energy Requirement (MDER); Average Dietary Energy Requirement (ADER); "Minimum Dietary Energy Requirement (MDER) -  PAL 1.75"; Coefficient of variation of habitual caloric consumption distribution (CV); Skewness of habitual caloric consumption distribution (SK); Incidence of caloric losses at retail distribution level; Dietary Energy Supply (DES); Average Fat Supply',
-                         'Contact': 'Carlo Cafiero', 'Email': 'Food-Security-Statistics@FAO.org',
-                         'DateUpdate': '2018-10-16', 'CompressionFormat': 'zip', 'FileType': 'csv', 'FileSize': '681KB',
-                         'FileRows': 70890, 'FileLocation': fsurl}
+    country = {'countryname': 'Afghanistan', 'iso3': 'AFG', 'origname': 'Afghanistan'}
+    countrymapping = {'2': ('AFG', 'Afghanistan')}
+    fsurl = 'http://lala/Food_Security_Data_E_All_Data_(Normalized).zip'
+    indicatorsets = {'Food Security': [{'DatasetCode': 'FS', 'DatasetName': 'Food Security: Suite of Food Security Indicators',
+                                       'Topic': 'See attached document which lists sector coverage with the respective indicator.',
+                                       'DatasetDescription': 'For detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...',
+                                       'Contact': 'Carlo Cafiero', 'Email': 'Food-Security-Statistics@FAO.org',
+                                       'DateUpdate': '2018-10-16', 'CompressionFormat': 'zip', 'FileType': 'csv', 'FileSize': '681KB',
+                                       'FileRows': 70890, 'FileLocation': fsurl}]}
 
     @pytest.fixture(scope='function')
     def configuration(self):
@@ -34,6 +37,18 @@ class TestFaostat:
         Country.countriesdata(use_live=False)
         Vocabulary._tags_dict = True
         Vocabulary._approved_vocabulary = {'tags': [{'name': 'hxl'}, {'name': 'food security'}, {'name': 'indicators'}], 'id': '4e61d464-4943-4e97-973a-84673c1aaa87', 'name': 'approved'}
+        return Configuration.read()
+
+    @pytest.fixture(scope='function')
+    def mock_urlretrieve(self):
+        def myurlretrieve(url, path):
+            class Headers:
+                @staticmethod
+                def get_content_type():
+                    return 'application/x-zip-compressed'
+            shutil.copyfile(join('tests', 'fixtures', basename(path)), path)
+            return path, Headers()
+        return myurlretrieve
 
     @pytest.fixture(scope='function')
     def downloader(self):
@@ -45,8 +60,7 @@ class TestFaostat:
         class Download:
             response = Response()
             response.headers = ['Area Code', 'Area', 'Item Code', 'Item', 'Element Code', 'Element', 'Year Code',
-                                'Year',
-                                'Unit', 'Value', 'Flag']
+                                'Year', 'Unit', 'Value', 'Flag']
 
             @staticmethod
             def hxl_row(headers, hxltags, dict_form):
@@ -55,9 +69,9 @@ class TestFaostat:
             @staticmethod
             def download(url):
                 response = Response()
-                if url == 'http://xxx/':
+                if url == 'http://lala/datasets_E.json':
                     def fn():
-                        return {'Datasets': {'Dataset': [TestFaostat.indicatortypedata]}}
+                        return {'Datasets': {'Dataset': TestFaostat.indicatorsets['Food Security']}}
                     response.json = fn
                 return response
 
@@ -65,9 +79,9 @@ class TestFaostat:
             def get_tabular_rows(url, **kwargs):
                 if url == 'http://yyy/':
                     return ['Country Code', 'ISO3 Code', 'Country'], [{'Country Code': '2', 'ISO3 Code': 'AFG', 'Country': 'Afghanistan'}]
-                elif url == TestFaostat.fsurl:
-                    return ['Area Code', 'Area', 'Item Code', 'Item', 'Element Code', 'Element', 'Year Code', 'Year',
-                             'Unit', 'Value', 'Flag'], \
+                elif 'FS.csv' in url:
+                    return ['Iso3', 'StartDate', 'EndDate', 'Area Code', 'Area', 'Item Code', 'Item', 'Element Code',
+                            'Element', 'Year Code', 'Year', 'Unit', 'Value', 'Flag'], \
                            [{'Area Code': '2', 'Area': 'Afghanistan', 'Item Code': '21010',
                              'Item': 'Average dietary energy supply adequacy (percent) (3-year average)',
                              'Element Code': '6121', 'Element': 'Value', 'Year Code': '19992001', 'Year': '1999-2001',
@@ -87,36 +101,48 @@ class TestFaostat:
 
         return Download()
 
-    def test_get_indicatortypes(self, downloader):
-        indicatortypesdata = get_indicatortypes('http://xxx/', downloader)
-        assert indicatortypesdata == {'FS': TestFaostat.indicatortypedata}
+    def test_get_indicatortypes(self, configuration, downloader, mock_urlretrieve):
+        with temp_dir('faostat-test') as folder:
+            indicatortypesdata = download_indicatorsets(configuration['filelist_url'], configuration['indicatorsetnames'],
+                                                        downloader, folder, urlretrieve=mock_urlretrieve)
+            assert indicatortypesdata == TestFaostat.indicatorsets
 
     def test_get_countries(self, downloader):
-        countriesdata = get_countries('http://yyy/', downloader)
-        assert countriesdata == {'2': ('AFG', 'Afghanistan')}
+        countries, countrymapping = get_countries('http://yyy/', downloader)
+        assert countries == [TestFaostat.country]
+        assert countrymapping == TestFaostat.countrymapping
 
     def test_generate_dataset_and_showcase(self, configuration, downloader):
-        with temp_dir('faostat') as folder:
-            datasets, showcases = generate_datasets_and_showcases(downloader, folder, 'Food Security',
-                                                                  TestFaostat.indicatortypedata,
-                                                                  TestFaostat.countrydata, 'http://zzz/')
-            assert datasets[0] == {'maintainer': '196196be-6037-4488-8b71-d786adf4c081',
-                                   'owner_org': 'ed727a5b-3e6e-4cd6-b97e-4a71532085e6', 'data_update_frequency': '365',
-                                   'subnational': '0', 'tags': [{'name': 'hxl', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'indicators', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'food security', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}],
-                                   'name': 'faostat-afghanistan-indicators-for-food-security',
-                                   'title': 'Afghanistan - Food Security Indicators', 'license_id': 'cc-by-igo',
-                                   'notes': 'FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics.',
-                                   'caveats': 'Reliability and accuracy depend on the sampling design and size of the basic variables and these might differ significantly between countries just as the use of data sources, definitions and methods. The accuracy of an indicator is very much dependent on the accuracy of the basic variables that make up the indicator.',
-                                   'methodology': 'Registry', 'dataset_source': 'FAOSTAT', 'package_creator': 'mcarans',
-                                   'private': False, 'groups': [{'name': 'afg'}], 'dataset_date': '01/01/1999-12/31/2014'}
+        with temp_dir('faostat-test') as folder:
+            filelist_url = configuration['filelist_url']
+            showcase_base_url = configuration['showcase_base_url']
+            dataset, showcase, bites_disabled, qc_indicators = \
+                generate_dataset_and_showcase('Food Security', TestFaostat.indicatorsets, TestFaostat.country,
+                                              TestFaostat.countrymapping, showcase_base_url, filelist_url, downloader, folder)
+            assert dataset == {'name': 'faostat-food-security-indicators-for-afghanistan',
+                               'title': 'Afghanistan - Food Security',
+                               'notes': 'Food Security indicators for Afghanistan.\n\nContains data from the FAOSTAT [bulk data service](http://lala/datasets_E.json).',
+                               'maintainer': '196196be-6037-4488-8b71-d786adf4c081',
+                               'owner_org': 'ed727a5b-3e6e-4cd6-b97e-4a71532085e6', 'data_update_frequency': '365',
+                               'subnational': '0', 'tags': [{'name': 'hxl', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'indicators', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'food security', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}],
+                               'groups': [{'name': 'afg'}], 'dataset_date': '01/01/1999-12/31/2014'}
 
-            resources = datasets[0].get_resources()
-            assert resources == [{'name': 'Afghanistan - Food Security', 'format': 'csv',
-                                  'description': 'HXLated csv containing food security indicators for Afghanistan',
-                                  'resource_type': 'file.upload', 'url_type': 'upload'}]
-            assert showcases[0] == {'name': 'faostat-afghanistan-indicators-for-food-security-showcase',
-                                    'title': 'Afghanistan - Food Security Indicators',
-                                    'notes': 'FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics.',
-                                    'url': 'http://zzz/2',
-                                    'image_url': 'http://www.fao.org/uploads/pics/food-agriculture.png',
-                                    'tags': [{'name': 'hxl', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'indicators', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'food security', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}]}
+            resources = dataset.get_resources()
+            assert resources == [{'name': 'Suite of Food Security Indicators for Afghanistan',
+                                  'description': '*Suite of Food Security Indicators:*\nFor detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...',
+                                  'format': 'csv', 'resource_type': 'file.upload', 'url_type': 'upload'},
+                                 {'name': 'QuickCharts-Suite of Food Security Indicators for Afghanistan',
+                                  'description': 'Cut down data for QuickCharts',
+                                  'format': 'csv', 'resource_type': 'file.upload', 'url_type': 'upload'}]
+            assert showcase == {'name': 'faostat-food-security-indicators-for-afghanistan-showcase', 'title': 'Afghanistan - Food Security',
+                                'notes': 'Food Security Data Dashboard for Afghanistan', 'url': 'http://www.fao.org/faostat/en/#country/AFG',
+                                'image_url': 'http://www.fao.org/uploads/pics/food-agriculture.png',
+                                'tags': [{'name': 'hxl', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'indicators', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'food security', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}]}
+            assert bites_disabled == [False, True, True]
+            assert qc_indicators == [{'code': '21010', 'title': 'Average dietary energy supply adequacy', 'unit': 'Percentage'},
+                                     {'code': '210041', 'title': 'Prevalence of undernourishment', 'unit': 'Percentage'},
+                                     {'code': '21034', 'title': 'Percentage of arable land equipped for irrigation', 'unit': 'Percentage'}]
+            file = 'Suite of Food Security Indicators_AFG.csv'
+            assert_files_same(join('tests', 'fixtures', file), join(folder, file))
+            file = 'qc_%s' % file
+            assert_files_same(join('tests', 'fixtures', file), join(folder, file))

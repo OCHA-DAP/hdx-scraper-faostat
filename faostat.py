@@ -9,129 +9,204 @@ Reads FAOSTAT JSON and creates datasets.
 """
 
 import logging
-from copy import deepcopy
+from os import remove, rename
+from os.path import join, exists, basename
+from urllib.parse import urlsplit
+from urllib.request import urlretrieve
+from zipfile import ZipFile
 
 from hdx.data.dataset import Dataset
 from hdx.data.showcase import Showcase
 from hdx.location.country import Country
+from hdx.utilities.dateparse import parse_date_range
+from hdx.utilities.dictandlist import dict_of_lists_add
 from slugify import slugify
 
 logger = logging.getLogger(__name__)
 
-hxltags = {'Iso3': '#country+code+v_iso3', 'Area': '#country+name', 'Item Code': '#indicator+code',
-           'Item': '#indicator+name', 'StartYear': '#date+year+start', 'EndYear': '#date+year+end',
-           'Unit': '#indicator+type',
-           'Value': '#indicator+num'}
+description = 'FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics.'
+hxltags = {'Iso3': '#country+code', 'StartDate': '#date+start', 'EndDate': '#date+end', 'Year': '#date+year', 'Area': '#country+name',
+           'Item Code': '#indicator+code', 'Item': '#indicator+name',  'Unit': '#indicator+type',
+           'Value': '#indicator+value+num'}
+
+
+def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder, urlretrieve=urlretrieve):
+    indicatorsets = dict()
+    response = downloader.download(filelist_url)
+    jsonresponse = response.json()
+
+    def add_row(row, filepath, indicatorsetname):
+        row['path'] = filepath
+        quickcharts = indicatorsetname.get('quickcharts')
+        if quickcharts and row['DatasetCode'] == quickcharts['code']:
+            row['quickcharts'] = quickcharts['indicators']
+        else:
+            row['quickcharts'] = None
+        dict_of_lists_add(indicatorsets, title, row)
+
+    for row in jsonresponse['Datasets']['Dataset']:
+        for indicatorsetname in indicatorsetnames:
+            title = indicatorsetname['title']
+            datasetname = row['DatasetName']
+            if '%s:' % title not in datasetname or 'archive' in datasetname.lower():
+                continue
+            indicatorsetcode = row['DatasetCode']
+            filepath = join(folder, '%s.csv' % indicatorsetcode)
+            statusfile = join(folder, '%s.txt' % indicatorsetcode)
+            if exists(filepath):
+                if exists(statusfile):
+                    with open(statusfile) as f:
+                        status = f.read()
+                        if status == 'OK':
+                            add_row(row, filepath, indicatorsetname)
+                            continue
+                    remove(statusfile)
+                remove(filepath)
+            path = filepath.replace('.csv', '.zip')
+            if exists(path):
+                remove(path)
+            path, headers = urlretrieve(row['FileLocation'], path)
+            if headers.get_content_type() != 'application/x-zip-compressed':
+                raise IOError('Problem with %s!' % path)
+            urlpath = urlsplit(row['FileLocation']).path
+            filename = basename(urlpath).replace('zip', 'csv')
+            with ZipFile(path, 'r') as zip:
+                path = zip.extract(filename, path=folder)
+                rename(path, filepath)
+                with open(statusfile, 'w') as f:
+                    f.write('OK')
+                add_row(row, filepath, indicatorsetname)
+    return indicatorsets
 
 
 def get_countries(countries_url, downloader):
-    countries = dict()
+    countrymapping = dict()
 
     _, iterator = downloader.get_tabular_rows(countries_url, headers=1, dict_form=True, format='csv')
     for row in iterator:
-        countries[row['Country Code'].strip()] = (row['ISO3 Code'].strip(), row['Country'].strip())
-    return countries
+        countryiso = row['ISO3 Code'].strip()
+        if not countryiso:
+            continue
+        try:
+            int(countryiso)
+            continue
+        except ValueError:
+            pass
+        countrymapping[row['Country Code'].strip()] = (countryiso, row['Country'].strip())
+    countries = list()
+    for countryiso, countryname in sorted(countrymapping.values()):
+        countries.append({'iso3': countryiso, 'countryname': Country.get_country_name_from_iso3(countryiso),
+                          'origname': countryname})
+    return countries, countrymapping
 
 
-def get_indicatortypes(filelist_url, downloader):
-    response = downloader.download(filelist_url)
-    jsonresponse = response.json()
-    indicatortypeslist = jsonresponse['Datasets']['Dataset']
-    return {x['DatasetCode']: x for x in indicatortypeslist}
+def generate_dataset_and_showcase(indicatorsetname, indicatorsets, country, countrymapping, showcase_base_url,
+                                  filelist_url, downloader, folder):
+    countryiso = country['iso3']
+    countryname = country['countryname']
+    indicatorset = indicatorsets[indicatorsetname]
+    title = '%s - %s' % (countryname, indicatorsetname)
+    name = 'FAOSTAT %s indicators for %s' % (indicatorsetname, countryname)
+    slugified_name = slugify(name).lower()
+    logger.info('Creating dataset: %s' % title)
+    dataset = Dataset({
+        'name': slugified_name,
+        'title': title
+    })
+    dataset.set_maintainer('196196be-6037-4488-8b71-d786adf4c081')
+    dataset.set_organization('ed727a5b-3e6e-4cd6-b97e-4a71532085e6')
+    dataset.set_expected_update_frequency('Every year')
+    dataset.set_subnational(False)
+    dataset.add_country_location(countryiso)
+    tags = ['hxl', 'indicators']
+    tag = indicatorsetname.lower()
+    if ' - ' in tag:
+        tags.extend(tag.split(' - '))
+    else:
+        tags.append(tag)
+    dataset.add_tags(tags)
 
-
-def generate_datasets_and_showcases(downloader, folder, indicatorname, indicatortypedata,
-                                    countriesdata, showcase_base_url):
-    dataset_template = Dataset()
-    dataset_template.set_maintainer('196196be-6037-4488-8b71-d786adf4c081')
-    dataset_template.set_organization('ed727a5b-3e6e-4cd6-b97e-4a71532085e6')
-    dataset_template.set_expected_update_frequency('Every year')
-    dataset_template.set_subnational(False)
-    tags = ['hxl', 'indicators', indicatorname.lower()]
-    dataset_template.add_tags(tags)
-
-    years = set()
-    countrycode = None
-    iso3 = None
-    countryname = None
-    rows = None
-    datasets = list()
-    showcases = list()
-
-    headers, iterator = downloader.get_tabular_rows(indicatortypedata['FileLocation'], headers=1, dict_form=True,
-                                                    format='csv', encoding='WINDOWS-1252')
-
-    def output_csv(cname, iname):
-        if rows is None:
-            return
-        for i, header in enumerate(headers):
-            if 'year' in header.lower():
-                headers.insert(i, 'EndYear')
-                headers.insert(i, 'StartYear')
-                break
-        headers.insert(0, 'Iso3')
-        hxlrow = downloader.hxl_row(headers, hxltags, dict_form=True)
-        rows.insert(0, hxlrow)
-        ds = datasets[-1]
-        ds.set_dataset_year_range(years)
-        filename = '%s_%s.csv' % (iname, countrycode)
-        resourcedata = {
-            'name': '%s - %s' % (cname, iname),
-            'description': 'HXLated csv containing %s indicators for %s' % (iname.lower(), cname)
-        }
-        dataset.generate_resource_from_rows(folder, filename, rows, resourcedata, headers=headers)
-
-    for row in iterator:
-        newcountry = row['Area Code']
-        if newcountry != countrycode:
-            output_csv(countryname, indicatorname)
-            rows = None
-            countrycode = newcountry
-            result = countriesdata.get(countrycode)
-            if result is None:
-                logger.warning('Ignoring %s' % countrycode)
-                continue
-            iso3, cn = result
-            countryname = Country.get_country_name_from_iso3(iso3)
-            if countryname is None:
-                logger.error('Missing country %s: %s, %s' % (countrycode, cn, iso3))
-                continue
-            rows = list()
-            title = '%s - %s Indicators' % (countryname, indicatorname)
-            logger.info('Generating dataset: %s' % title)
-            name = 'FAOSTAT %s indicators for %s' % (countryname, indicatorname)
-            slugified_name = slugify(name).lower()
-            dataset = Dataset(deepcopy(dataset_template.data))
-            dataset['name'] = slugified_name
-            dataset['title'] = title
-            dataset.update_from_yaml()
-            dataset.add_country_location(countryname)
-            years.clear()
-
-            datasets.append(dataset)
-            showcase = Showcase({
-                'name': '%s-showcase' % slugified_name,
-                'title': title,
-                'notes': dataset['notes'],
-                'url': '%s%s' % (showcase_base_url, countrycode),
-                'image_url': 'http://www.fao.org/uploads/pics/food-agriculture.png'
-            })
-            showcase.add_tags(tags)
-            showcases.append(showcase)
-        row['Iso3'] = iso3
-        row['Area'] = countryname
+    def process_date(row):
+        countrycode = row.get('Area Code')
+        if countrycode is None:
+            return None
+        result = countrymapping.get(countrycode)
+        if result is None:
+            return None
+        isolookup, _ = result
+        if isolookup != countryiso:
+            return None
+        row['Iso3'] = countryiso
         year = row['Year']
-        if '-' in year:
-            yearrange = year.split('-')
-            row['StartYear'] = yearrange[0]
-            row['EndYear'] = yearrange[1]
-            years.add(int(yearrange[0]))
-            years.add(int(yearrange[1]))
+        month = row.get('Months')
+        if month is not None:
+            startdate, enddate = parse_date_range('%s %s' % (month, year))
         else:
-            years.add(int(year))
-            row['StartYear'] = year
-            row['EndYear'] = year
-        if rows is not None:
-            rows.append(row)
-    output_csv(countryname, indicatorname)
-    return datasets, showcases
+            if '-' in year:
+                yearrange = year.split('-')
+                startdate, _ = parse_date_range(yearrange[0])
+                _, enddate = parse_date_range(yearrange[1])
+                row['Year'] = yearrange[1]
+            else:
+                startdate, enddate = parse_date_range(year)
+        row['StartDate'] = startdate.strftime('%Y-%m-%d')
+        row['EndDate'] = enddate.strftime('%Y-%m-%d')
+        return {'startdate': startdate, 'enddate': enddate}
+
+    bites_disabled = None
+    qc_indicators = None
+    categories = list()
+    for row in indicatorset:
+        longname = row['DatasetName']
+        url = row['path']
+        category = longname.split(': ')[1]
+        filename = '%s_%s.csv' % (category, countryiso)
+        description = '*%s:*\n%s' % (category, row['DatasetDescription'])
+        if category[-10:] == 'Indicators':
+            name = category
+        else:
+            name = '%s data' % category
+        resourcedata = {
+            'name': '%s for %s' % (name, countryname),
+            'description': description
+        }
+        header_insertions = [(0, 'EndDate'), (0, 'StartDate'), (0, 'Iso3')]
+        indicators_for_qc = row.get('quickcharts')
+        if indicators_for_qc:
+            quickcharts = {'hashtag': '#indicator+code', 'values': [x['code'] for x in indicators_for_qc], 'numeric_hashtag': '#indicator+value+num',
+                           'cutdown': 2, 'cutdownhashtags': ['#indicator+code', '#country+code', '#date+year']}
+            qc_indicators = indicators_for_qc
+        else:
+            quickcharts = None
+        success, results = dataset.download_and_generate_resource(
+            downloader, url, hxltags, folder, filename, resourcedata, header_insertions=header_insertions,
+            date_function=process_date, quickcharts=quickcharts, encoding='WINDOWS-1252')
+        if success is False:
+            logger.warning('%s for %s has no data!' % (category, countryname))
+            continue
+        disabled_bites = results.get('bites_disabled')
+        if disabled_bites:
+            bites_disabled = disabled_bites
+        categories.append(category)
+
+    if dataset.number_of_resources() == 0:
+        logger.warning('%s has no data!' % countryname)
+        return None, None, None, None
+    dataset.quickcharts_resource_last()
+    notes = ['%s indicators for %s.\n\n' % (indicatorsetname, countryname),
+             'Contains data from the FAOSTAT [bulk data service](%s)' % filelist_url]
+    if len(categories) == 1:
+        notes.append('.')
+    else:
+        notes.append(' covering the following categories: %s' % ', '.join(categories))
+    dataset['notes'] = ''.join(notes)
+
+    showcase = Showcase({
+        'name': '%s-showcase' % slugified_name,
+        'title': title,
+        'notes': '%s Data Dashboard for %s' % (indicatorsetname, countryname),
+        'url': '%s%s' % (showcase_base_url, countryiso),
+        'image_url': 'http://www.fao.org/uploads/pics/food-agriculture.png'
+    })
+    showcase.add_tags(tags)
+    return dataset, showcase, bites_disabled, qc_indicators

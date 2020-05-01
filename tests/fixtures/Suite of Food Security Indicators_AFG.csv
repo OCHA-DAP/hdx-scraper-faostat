@@ -1,0 +1,5 @@
+Iso3,StartDate,EndDate,Area Code,Area,Item Code,Item,Element Code,Element,Year Code,Year,Unit,Value,Flag
+#country+code,#date+start,#date+end,,#country+name,#indicator+code,#indicator+name,,,,#date+year,#indicator+type,#indicator+value+num,
+AFG,1999-01-01,2001-12-31,2,Afghanistan,21010,Average dietary energy supply adequacy (percent) (3-year average),6121,Value,19992001,2001,%,89.000000,F
+AFG,2004-01-01,2006-12-31,2,Afghanistan,21011,Average value of food production (constant 2004-2006 I$/cap) (3-year average),6122,Value,20042006,2006,I$ per person,114.000000,F
+AFG,2014-01-01,2014-12-31,2,Afghanistan,22013,"Gross domestic product per capita, PPP, dissemination (constant 2011 international $)",6126,Value,2014,2014,I$,1839.000000,X

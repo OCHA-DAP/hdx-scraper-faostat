@@ -1,3 +1,31 @@
 # Collector specific configuration
-base_url: "http://xxx/"
+filelist_url: "http://lala/datasets_E.json"
+showcase_base_url: "http://www.fao.org/faostat/en/#country/"
+indicatorsetnames:
+  - title: "Food Security"
+    quickcharts:
+      code: "FS"
+      indicators:
+        - code: "21010"
+          title: "Average dietary energy supply adequacy"
+          unit: "Percentage"
+        - code: "210041"
+          title: "Prevalence of undernourishment"
+          unit: "Percentage"
+        - code: "21034"
+          title: "Percentage of arable land equipped for irrigation"
+          unit: "Percentage"
+  - title: "Prices"
+    quickcharts:
+      code: "PI"
+      indicators:
+        - code: "2051"
+          title: "Agriculture (PIN)"
+          unit: "Producer Price Index (2004-2006 = 100)"
+        - code: "2044"
+          title: "Livestock (PIN)"
+          unit: "Producer Price Index (2004-2006 = 100)"
+        - code: "1717"
+          title: "Cereals,Total"
+          unit: "Producer Price Index (2004-2006 = 100)"
 
