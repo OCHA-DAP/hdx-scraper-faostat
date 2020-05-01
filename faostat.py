@@ -16,6 +16,7 @@ from urllib.request import urlretrieve
 from zipfile import ZipFile
 
 from hdx.data.dataset import Dataset
+from hdx.data.hdxobject import HDXError
 from hdx.data.showcase import Showcase
 from hdx.location.country import Country
 from hdx.utilities.dateparse import parse_date_range
@@ -117,7 +118,11 @@ def generate_dataset_and_showcase(indicatorsetname, indicatorsets, country, coun
     dataset.set_organization('ed727a5b-3e6e-4cd6-b97e-4a71532085e6')
     dataset.set_expected_update_frequency('Every year')
     dataset.set_subnational(False)
-    dataset.add_country_location(countryiso)
+    try:
+        dataset.add_country_location(countryiso)
+    except HDXError as e:
+        logger.exception('%s has a problem! %s' % (countryname, e))
+        return None, None, None, None
     tags = ['hxl', 'indicators']
     tag = indicatorsetname.lower()
     if ' - ' in tag:
