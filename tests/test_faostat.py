@@ -22,12 +22,13 @@ class TestFaostat:
     country = {'countryname': 'Afghanistan', 'iso3': 'AFG', 'origname': 'Afghanistan'}
     countrymapping = {'2': ('AFG', 'Afghanistan')}
     fsurl = 'http://lala/Food_Security_Data_E_All_Data_(Normalized).zip'
-    indicatorsets = {'Food Security': [{'DatasetCode': 'FS', 'DatasetName': 'Food Security: Suite of Food Security Indicators',
-                                       'Topic': 'See attached document which lists sector coverage with the respective indicator.',
-                                       'DatasetDescription': 'For detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...',
-                                       'Contact': 'Carlo Cafiero', 'Email': 'Food-Security-Statistics@FAO.org',
-                                       'DateUpdate': '2018-10-16', 'CompressionFormat': 'zip', 'FileType': 'csv', 'FileSize': '681KB',
-                                       'FileRows': 70890, 'FileLocation': fsurl}]}
+    indicatorsets = {'Food Security':
+                         [{'DatasetCode': 'FS', 'DatasetName': 'Food Security: Suite of Food Security Indicators',
+                          'Topic': 'See attached document which lists sector coverage with the respective indicator.',
+                          'DatasetDescription': 'For detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...',
+                          'Contact': 'Carlo Cafiero', 'Email': 'Food-Security-Statistics@FAO.org',
+                          'DateUpdate': '2018-10-16', 'CompressionFormat': 'zip', 'FileType': 'csv', 'FileSize': '681KB',
+                          'FileRows': 70890, 'FileLocation': fsurl}]}
 
     @pytest.fixture(scope='function')
     def configuration(self):
@@ -120,8 +121,8 @@ class TestFaostat:
                 generate_dataset_and_showcase('Food Security', TestFaostat.indicatorsets, TestFaostat.country,
                                               TestFaostat.countrymapping, showcase_base_url, filelist_url, downloader, folder)
             assert dataset == {'name': 'faostat-food-security-indicators-for-afghanistan',
-                               'title': 'Afghanistan - Food Security',
-                               'notes': 'Food Security indicators for Afghanistan.\n\nContains data from the FAOSTAT [bulk data service](http://lala/datasets_E.json).',
+                               'title': 'Afghanistan - Food Security Indicators',
+                               'notes': 'Food Security Indicators for Afghanistan.\n\nContains data from the FAOSTAT [bulk data service](http://lala/datasets_E.json).',
                                'maintainer': '196196be-6037-4488-8b71-d786adf4c081',
                                'owner_org': 'ed727a5b-3e6e-4cd6-b97e-4a71532085e6', 'data_update_frequency': '365',
                                'subnational': '0', 'tags': [{'name': 'hxl', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'indicators', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'food security', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}],
@@ -134,7 +135,7 @@ class TestFaostat:
                                  {'name': 'QuickCharts-Suite of Food Security Indicators for Afghanistan',
                                   'description': 'Cut down data for QuickCharts',
                                   'format': 'csv', 'resource_type': 'file.upload', 'url_type': 'upload'}]
-            assert showcase == {'name': 'faostat-food-security-indicators-for-afghanistan-showcase', 'title': 'Afghanistan - Food Security',
+            assert showcase == {'name': 'faostat-food-security-indicators-for-afghanistan-showcase', 'title': 'Afghanistan - Food Security Indicators',
                                 'notes': 'Food Security Data Dashboard for Afghanistan', 'url': 'http://www.fao.org/faostat/en/#country/AFG',
                                 'image_url': 'http://www.fao.org/uploads/pics/food-agriculture.png',
                                 'tags': [{'name': 'hxl', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'indicators', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'food security', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}]}

@@ -43,13 +43,13 @@ def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder, 
             row['quickcharts'] = quickcharts['indicators']
         else:
             row['quickcharts'] = None
-        dict_of_lists_add(indicatorsets, title, row)
+        dict_of_lists_add(indicatorsets, indicatorsetname['category'], row)
 
     for row in jsonresponse['Datasets']['Dataset']:
         for indicatorsetname in indicatorsetnames:
-            title = indicatorsetname['title']
+            category = indicatorsetname['category']
             datasetname = row['DatasetName']
-            if '%s:' % title not in datasetname or 'archive' in datasetname.lower():
+            if '%s:' % category not in datasetname or 'archive' in datasetname.lower():
                 continue
             indicatorsetcode = row['DatasetCode']
             filepath = join(folder, '%s.csv' % indicatorsetcode)
@@ -106,8 +106,12 @@ def generate_dataset_and_showcase(indicatorsetname, indicatorsets, country, coun
     countryiso = country['iso3']
     countryname = country['countryname']
     indicatorset = indicatorsets[indicatorsetname]
-    title = '%s - %s' % (countryname, indicatorsetname)
-    name = 'FAOSTAT %s indicators for %s' % (indicatorsetname, countryname)
+    if indicatorsetname == 'Prices':
+        indicatorsetdisplayname = indicatorsetname
+    else:
+        indicatorsetdisplayname = '%s Indicators' % indicatorsetname
+    title = '%s - %s' % (countryname, indicatorsetdisplayname)
+    name = 'FAOSTAT %s for %s' % (indicatorsetdisplayname, countryname)
     slugified_name = slugify(name).lower()
     logger.info('Creating dataset: %s' % title)
     dataset = Dataset({
@@ -158,7 +162,7 @@ def generate_dataset_and_showcase(indicatorsetname, indicatorsets, country, coun
         row['EndDate'] = enddate.strftime('%Y-%m-%d')
         return {'startdate': startdate, 'enddate': enddate}
 
-    bites_disabled = None
+    bites_disabled = [True, True, True]
     qc_indicators = None
     categories = list()
     for row in indicatorset:
@@ -198,7 +202,7 @@ def generate_dataset_and_showcase(indicatorsetname, indicatorsets, country, coun
         logger.warning('%s has no data!' % countryname)
         return None, None, None, None
     dataset.quickcharts_resource_last()
-    notes = ['%s indicators for %s.\n\n' % (indicatorsetname, countryname),
+    notes = ['%s for %s.\n\n' % (indicatorsetdisplayname, countryname),
              'Contains data from the FAOSTAT [bulk data service](%s)' % filelist_url]
     if len(categories) == 1:
         notes.append('.')
