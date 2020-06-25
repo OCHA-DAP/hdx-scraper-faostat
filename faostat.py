@@ -51,6 +51,11 @@ def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder, 
             datasetname = row['DatasetName']
             if '%s:' % category not in datasetname or 'archive' in datasetname.lower():
                 continue
+            filelocation = row['FileLocation']
+            urlpath = urlsplit(filelocation).path
+            filename = basename(urlpath).replace('zip', 'csv')
+            if 'Archive' in filename:
+                continue
             indicatorsetcode = row['DatasetCode']
             filepath = join(folder, '%s.csv' % indicatorsetcode)
             statusfile = join(folder, '%s.txt' % indicatorsetcode)
@@ -66,11 +71,9 @@ def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder, 
             path = filepath.replace('.csv', '.zip')
             if exists(path):
                 remove(path)
-            path, headers = urlretrieve(row['FileLocation'], path)
+            path, headers = urlretrieve(filelocation, path)
             if headers.get_content_type() != 'application/x-zip-compressed':
                 raise IOError('Problem with %s!' % path)
-            urlpath = urlsplit(row['FileLocation']).path
-            filename = basename(urlpath).replace('zip', 'csv')
             with ZipFile(path, 'r') as zip:
                 path = zip.extract(filename, path=folder)
                 rename(path, filepath)
@@ -148,7 +151,7 @@ def generate_dataset_and_showcase(indicatorsetname, indicatorsets, country, coun
         row['Iso3'] = countryiso
         year = row['Year']
         month = row.get('Months')
-        if month is not None:
+        if month is not None and month != 'Annual value':
             startdate, enddate = parse_date_range('%s %s' % (month, year))
         else:
             if '-' in year:
