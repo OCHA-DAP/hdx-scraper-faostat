@@ -9,8 +9,9 @@ Reads FAOSTAT JSON and creates datasets.
 """
 
 import logging
+from datetime import datetime, timedelta
 from os import remove, rename
-from os.path import join, exists, basename
+from os.path import join, exists, basename, getctime
 from urllib.parse import urlsplit
 from urllib.request import urlretrieve
 from zipfile import ZipFile
@@ -61,11 +62,13 @@ def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder, 
             statusfile = join(folder, '%s.txt' % indicatorsetcode)
             if exists(filepath):
                 if exists(statusfile):
-                    with open(statusfile) as f:
-                        status = f.read()
-                        if status == 'OK':
-                            add_row(row, filepath, indicatorsetname)
-                            continue
+                    filedate = datetime.fromtimestamp(getctime(statusfile))
+                    if filedate > (datetime.now() - timedelta(days=1)):
+                        with open(statusfile) as f:
+                            status = f.read()
+                            if status == 'OK':
+                                add_row(row, filepath, indicatorsetname)
+                                continue
                     remove(statusfile)
                 remove(filepath)
             path = filepath.replace('.csv', '.zip')
