@@ -102,8 +102,10 @@ def get_countries(countries_url, downloader):
         countrymapping[row['Country Code'].strip()] = (countryiso, row['Country'].strip())
     countries = list()
     for countryiso, countryname in sorted(countrymapping.values()):
-        countries.append({'iso3': countryiso, 'countryname': Country.get_country_name_from_iso3(countryiso),
-                          'origname': countryname})
+        newcountryname = Country.get_country_name_from_iso3(countryiso)
+        if newcountryname:
+            countries.append({'iso3': countryiso, 'countryname': newcountryname,
+                              'origname': countryname})
     return countries, countrymapping
 
 
