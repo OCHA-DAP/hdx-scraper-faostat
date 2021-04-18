@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from os import remove, rename
 from os.path import join, exists, basename, getctime
 from urllib.parse import urlsplit
-from urllib.request import urlretrieve
 from zipfile import ZipFile
 
 from hdx.data.dataset import Dataset
@@ -32,7 +31,7 @@ hxltags = {'Iso3': '#country+code', 'StartDate': '#date+start', 'EndDate': '#dat
            'Value': '#indicator+value+num'}
 
 
-def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder, urlretrieve=urlretrieve):
+def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder):
     indicatorsets = dict()
     response = downloader.download(filelist_url)
     jsonresponse = response.json()
@@ -74,9 +73,7 @@ def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder, 
             path = filepath.replace('.csv', '.zip')
             if exists(path):
                 remove(path)
-            path, headers = urlretrieve(filelocation, path)
-            if headers.get_content_type() != 'application/x-zip-compressed':
-                raise IOError('Problem with %s!' % path)
+            path = downloader.download_file(filelocation, path=path)
             with ZipFile(path, 'r') as zip:
                 path = zip.extract(filename, path=folder)
                 rename(path, filepath)

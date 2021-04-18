@@ -13,6 +13,7 @@ from hdx.hdx_configuration import Configuration
 from hdx.hdx_locations import Locations
 from hdx.location.country import Country
 from hdx.utilities.compare import assert_files_same
+from hdx.utilities.downloader import DownloadError
 from hdx.utilities.path import temp_dir
 
 from faostat import generate_dataset_and_showcase, get_countries, download_indicatorsets
@@ -77,6 +78,13 @@ class TestFaostat:
                 return response
 
             @staticmethod
+            def download_file(url, path):
+                if url == 'http://lala/Food_Security_Data_E_All_Data_(Normalized).zip':
+                    shutil.copyfile(join('tests', 'fixtures', basename(path)), path)
+                    return path
+                raise DownloadError('Should not get here!')
+
+            @staticmethod
             def get_tabular_rows(url, **kwargs):
                 if url == 'http://yyy/':
                     return ['Country Code', 'ISO3 Code', 'Country'], [{'Country Code': '2', 'ISO3 Code': 'AFG', 'Country': 'Afghanistan'}]
@@ -105,7 +113,7 @@ class TestFaostat:
     def test_get_indicatortypes(self, configuration, downloader, mock_urlretrieve):
         with temp_dir('faostat-test') as folder:
             indicatortypesdata = download_indicatorsets(configuration['filelist_url'], configuration['indicatorsetnames'],
-                                                        downloader, folder, urlretrieve=mock_urlretrieve)
+                                                        downloader, folder)
             assert indicatortypesdata == TestFaostat.indicatorsets
 
     def test_get_countries(self, downloader):
@@ -126,7 +134,7 @@ class TestFaostat:
                                'maintainer': '196196be-6037-4488-8b71-d786adf4c081',
                                'owner_org': 'ed727a5b-3e6e-4cd6-b97e-4a71532085e6', 'data_update_frequency': '365',
                                'subnational': '0', 'tags': [{'name': 'hxl', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'indicators', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'food security', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}],
-                               'groups': [{'name': 'afg'}], 'dataset_date': '01/01/1999-12/31/2014'}
+                               'groups': [{'name': 'afg'}], 'dataset_date': '[1999-01-01T00:00:00 TO 2014-12-31T00:00:00]'}
 
             resources = dataset.get_resources()
             assert resources == [{'name': 'Suite of Food Security Indicators for Afghanistan',
