@@ -220,7 +220,7 @@ def generate_dataset_and_showcase(indicatorsetname, indicatorsets, country, coun
         'title': title,
         'notes': '%s Data Dashboard for %s' % (indicatorsetname, countryname),
         'url': '%s%s' % (showcase_base_url, countryiso),
-        'image_url': 'http://www.fao.org/uploads/pics/food-agriculture.png'
+        'image_url': 'https://pbs.twimg.com/profile_images/1375385494167691269/Bc49-Yx8_400x400.jpg'
     })
     showcase.add_tags(tags)
     return dataset, showcase, bites_disabled, qc_indicators

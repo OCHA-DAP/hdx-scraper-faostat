@@ -145,7 +145,7 @@ class TestFaostat:
                                   'format': 'csv', 'resource_type': 'file.upload', 'url_type': 'upload'}]
             assert showcase == {'name': 'faostat-food-security-indicators-for-afghanistan-showcase', 'title': 'Afghanistan - Food Security Indicators',
                                 'notes': 'Food Security Data Dashboard for Afghanistan', 'url': 'http://www.fao.org/faostat/en/#country/AFG',
-                                'image_url': 'http://www.fao.org/uploads/pics/food-agriculture.png',
+                                'image_url': 'https://pbs.twimg.com/profile_images/1375385494167691269/Bc49-Yx8_400x400.jpg',
                                 'tags': [{'name': 'hxl', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'indicators', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}, {'name': 'food security', 'vocabulary_id': '4e61d464-4943-4e97-973a-84673c1aaa87'}]}
             assert bites_disabled == [False, True, True]
             assert qc_indicators == [{'code': '21010', 'title': 'Average dietary energy supply adequacy', 'unit': 'Percentage'},
