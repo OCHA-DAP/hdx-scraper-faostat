@@ -7,7 +7,7 @@ import logging
 from os.path import expanduser, join
 
 from hdx.facades.simple import facade
-from hdx.hdx_configuration import Configuration
+from hdx.api.configuration import Configuration
 from hdx.utilities.downloader import Download
 from hdx.utilities.path import progress_storing_folder, wheretostart_tempdir_batch
 
