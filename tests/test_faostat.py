@@ -7,15 +7,14 @@ import shutil
 from os.path import basename, join
 
 import pytest
-from hdx.data.vocabulary import Vocabulary
+from faostat import download_indicatorsets, generate_dataset_and_showcase, get_countries
 from hdx.api.configuration import Configuration
 from hdx.api.locations import Locations
+from hdx.data.vocabulary import Vocabulary
 from hdx.location.country import Country
 from hdx.utilities.compare import assert_files_same
 from hdx.utilities.downloader import DownloadError
 from hdx.utilities.path import temp_dir
-
-from faostat import download_indicatorsets, generate_dataset_and_showcase, get_countries
 
 
 class TestFaostat:
@@ -266,7 +265,7 @@ class TestFaostat:
                     },
                 ],
                 "groups": [{"name": "afg"}],
-                "dataset_date": "[1999-01-01T00:00:00 TO 2014-12-31T00:00:00]",
+                "dataset_date": "[1999-01-01T00:00:00 TO 2014-12-31T23:59:59]",
             }
 
             resources = dataset.get_resources()
