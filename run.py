@@ -6,12 +6,11 @@ Top level script. Calls other functions that generate datasets that this script 
 import logging
 from os.path import expanduser, join
 
-from hdx.facades.simple import facade
+from faostat import download_indicatorsets, generate_dataset_and_showcase, get_countries
 from hdx.api.configuration import Configuration
+from hdx.facades.simple import facade
 from hdx.utilities.downloader import Download
 from hdx.utilities.path import progress_storing_folder, wheretostart_tempdir_batch
-
-from faostat import download_indicatorsets, generate_dataset_and_showcase, get_countries
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +20,11 @@ lookup = "hdx-scraper-faostat"
 def main():
     """Generate dataset and create it in HDX"""
 
-    filelist_url = Configuration.read()["filelist_url"]
-    countrygroup_url = Configuration.read()["countrygroup_url"]
-    indicatorsetnames = Configuration.read()["indicatorsetnames"]
-    showcase_base_url = Configuration.read()["showcase_base_url"]
+    configuration = Configuration.read()
+    filelist_url = configuration["filelist_url"]
+    countrygroup_url = configuration["countrygroup_url"]
+    indicatorsetnames = configuration["indicatorsetnames"]
+    showcase_base_url = configuration["showcase_base_url"]
     with Download() as downloader:
         with wheretostart_tempdir_batch(lookup) as info:
             folder = info["folder"]

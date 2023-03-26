@@ -97,7 +97,10 @@ def get_countries(countries_url, downloader):
         countries_url, headers=1, dict_form=True, format="csv"
     )
     for row in iterator:
-        countryiso = row["ISO3 Code"].strip()
+        countryiso = row["ISO3 Code"]
+        if not countryiso:
+            continue
+        countryiso = countryiso.strip()
         if not countryiso:
             continue
         try:
