@@ -56,7 +56,7 @@ def main():
                     )
                     if dataset:
                         dataset.update_from_yaml()
-                        dataset.generate_resource_view(
+                        dataset.generate_quickcharts(
                             -1, bites_disabled=bites_disabled, indicators=qc_indicators
                         )
                         dataset.create_in_hdx(
