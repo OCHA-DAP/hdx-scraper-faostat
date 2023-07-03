@@ -45,11 +45,13 @@ def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder):
 
     def add_row(row, filepath, indicatorsetname):
         row["path"] = filepath
+        title = indicatorsetname["title"]
         quickcharts = indicatorsetname.get("quickcharts")
         if quickcharts and row["DatasetCode"] == quickcharts["code"]:
             row["quickcharts"] = quickcharts["indicators"]
         else:
             row["quickcharts"] = None
+        row["title"] = title
         dict_of_lists_add(indicatorsets, indicatorsetname["category"], row)
 
     for row in jsonresponse["Datasets"]["Dataset"]:
@@ -139,10 +141,7 @@ def generate_dataset_and_showcase(
     countryiso = country["iso3"]
     countryname = country["countryname"]
     indicatorset = indicatorsets[indicatorsetname]
-    if indicatorsetname == "Prices":
-        indicatorsetdisplayname = indicatorsetname
-    else:
-        indicatorsetdisplayname = f"{indicatorsetname} Indicators"
+    indicatorsetdisplayname = indicatorset[0]["title"]
     title = f"{countryname} - {indicatorsetdisplayname}"
     name = f"FAOSTAT {indicatorsetdisplayname} for {countryname}"
     slugified_name = slugify(name).lower()

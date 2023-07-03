@@ -4,6 +4,7 @@ countrygroup_url: "config/FAOSTAT_CountryGroups.csv"
 showcase_base_url: "http://www.fao.org/faostat/en/#country/"
 indicatorsetnames:
   - category: "Food Security"
+    title: "Food Security Indicators"
     quickcharts:
       code: "FS"
       indicators:
@@ -17,6 +18,7 @@ indicatorsetnames:
           title: "Percentage of arable land equipped for irrigation"
           unit: "Percentage"
   - category: "Prices"
+    title: "Food Prices"
     quickcharts:
       code: "CP"
       indicators:
