@@ -155,7 +155,7 @@ def generate_dataset_and_showcase(
     except HDXError as e:
         logger.exception(f"{countryname} has a problem! {e}")
         return None, None, None, None
-    tags = ["hxl", "indicators"]
+    tags = ["hxl", "indicators", "food security"]
     tag = categoryname.lower()
     if " - " in tag:
         tags.extend(tag.split(" - "))

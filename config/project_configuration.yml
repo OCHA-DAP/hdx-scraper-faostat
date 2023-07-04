@@ -26,7 +26,10 @@ categories:
       indicators:
         - code: "23013"
           title: "Consumer Prices, Food"
-          unit: "Consumer Prices Index (2010 = 100)"
+          unit: "Consumer Prices, Food Indices (2015 = 100)"
         - code: "23012"
           title: "Consumer Prices, General"
-          unit: "Consumer Prices Index (2010 = 100)"
+          unit: "Consumer Prices, General Indices (2015 = 100)"
+        - code: "23014"
+          title: "Food Price Inflation"
+          unit: "Percentage"
