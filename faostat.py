@@ -38,27 +38,25 @@ hxltags = {
 }
 
 
-def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder):
+def download_indicatorsets(filelist_url, categories, downloader, folder):
     indicatorsets = dict()
     response = downloader.download(filelist_url)
     jsonresponse = response.json()
 
-    def add_row(row, filepath, indicatorsetname):
+    def add_row(row, filepath, categoryname, category):
         row["path"] = filepath
-        title = indicatorsetname["title"]
-        quickcharts = indicatorsetname.get("quickcharts")
+        quickcharts = category.get("quickcharts")
         if quickcharts and row["DatasetCode"] == quickcharts["code"]:
             row["quickcharts"] = quickcharts["indicators"]
         else:
             row["quickcharts"] = None
-        row["title"] = title
-        dict_of_lists_add(indicatorsets, indicatorsetname["category"], row)
+        dict_of_lists_add(indicatorsets, categoryname, row)
 
     for row in jsonresponse["Datasets"]["Dataset"]:
-        for indicatorsetname in indicatorsetnames:
-            category = indicatorsetname["category"]
+        for categoryname in categories:
+            category = categories[categoryname]
             datasetname = row["DatasetName"]
-            if f"{category}:" not in datasetname or "archive" in datasetname.lower():
+            if f"{categoryname}:" not in datasetname or "archive" in datasetname.lower():
                 continue
             filelocation = row["FileLocation"]
             urlpath = urlsplit(filelocation).path
@@ -75,7 +73,7 @@ def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder):
                         with open(statusfile) as f:
                             status = f.read()
                             if status == "OK":
-                                add_row(row, filepath, indicatorsetname)
+                                add_row(row, filepath, categoryname, category)
                                 continue
                     remove(statusfile)
                 remove(filepath)
@@ -88,7 +86,7 @@ def download_indicatorsets(filelist_url, indicatorsetnames, downloader, folder):
                 rename(path, filepath)
                 with open(statusfile, "w") as f:
                     f.write("OK")
-                add_row(row, filepath, indicatorsetname)
+                add_row(row, filepath, categoryname, category)
     return indicatorsets
 
 
@@ -129,7 +127,8 @@ def get_countries(countries_url, downloader):
 
 
 def generate_dataset_and_showcase(
-    indicatorsetname,
+    categoryname,
+    categories,
     indicatorsets,
     country,
     countrymapping,
@@ -140,11 +139,11 @@ def generate_dataset_and_showcase(
 ):
     countryiso = country["iso3"]
     countryname = country["countryname"]
-    indicatorset = indicatorsets[indicatorsetname]
-    indicatorsetdisplayname = indicatorset[0]["title"]
+    category = categories[categoryname]
+    indicatorset = indicatorsets[categoryname]
+    indicatorsetdisplayname = category["title"]
     title = f"{countryname} - {indicatorsetdisplayname}"
-    name = f"FAOSTAT {indicatorsetdisplayname} for {countryname}"
-    slugified_name = slugify(name).lower()
+    slugified_name = slugify(f"{category['filename']}{countryname.lower()}")
     logger.info(f"Creating dataset: {title}")
     dataset = Dataset({"name": slugified_name, "title": title})
     dataset.set_maintainer("196196be-6037-4488-8b71-d786adf4c081")
@@ -157,9 +156,11 @@ def generate_dataset_and_showcase(
         logger.exception(f"{countryname} has a problem! {e}")
         return None, None, None, None
     tags = ["hxl", "indicators"]
-    tag = indicatorsetname.lower()
+    tag = categoryname.lower()
     if " - " in tag:
         tags.extend(tag.split(" - "))
+    elif " and " in tag:
+        tags.extend(tag.split(" and "))
     else:
         tags.append(tag)
     dataset.add_tags(tags)
@@ -256,7 +257,7 @@ def generate_dataset_and_showcase(
         {
             "name": f"{slugified_name}-showcase",
             "title": title,
-            "notes": f"{indicatorsetname} Data Dashboard for {countryname}",
+            "notes": f"{categoryname} Data Dashboard for {countryname}",
             "url": f"{showcase_base_url}{countryiso}",
             "image_url": "https://pbs.twimg.com/profile_images/1375385494167691269/Bc49-Yx8_400x400.jpg",
         }

@@ -23,29 +23,30 @@ def main():
     configuration = Configuration.read()
     filelist_url = configuration["filelist_url"]
     countrygroup_url = configuration["countrygroup_url"]
-    indicatorsetnames = configuration["indicatorsetnames"]
+    categories = configuration["categories"]
     showcase_base_url = configuration["showcase_base_url"]
     with Download() as downloader:
         with wheretostart_tempdir_batch(lookup) as info:
             folder = info["folder"]
             batch = info["batch"]
             indicatorsets = download_indicatorsets(
-                filelist_url, indicatorsetnames, downloader, folder
+                filelist_url, categories, downloader, folder
             )
             logger.info(
-                f"Number of indicator types to upload: {len(indicatorsetnames)}"
+                f"Number of categories to upload: {len(categories)}"
             )
             countries, countrymapping = get_countries(countrygroup_url, downloader)
             logger.info(f"Number of countries to upload: {len(countries)}")
             for info, country in progress_storing_folder(info, countries, "iso3"):
-                for indicatorsetname in indicatorsets:
+                for categoryname in indicatorsets:
                     (
                         dataset,
                         showcase,
                         bites_disabled,
                         qc_indicators,
                     ) = generate_dataset_and_showcase(
-                        indicatorsetname,
+                        categoryname,
+                        categories,
                         indicatorsets,
                         country,
                         countrymapping,

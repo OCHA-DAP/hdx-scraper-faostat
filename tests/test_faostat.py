@@ -22,10 +22,10 @@ class TestFaostat:
     countrymapping = {"2": ("AFG", "Afghanistan")}
     fsurl = "http://lala/Food_Security_Data_E_All_Data_(Normalized).zip"
     indicatorsets = {
-        "Food Security": [
+        "Food Security and Nutrition": [
             {
                 "DatasetCode": "FS",
-                "DatasetName": "Food Security: Suite of Food Security Indicators",
+                "DatasetName": "Food Security and Nutrition: Suite of Food Security Indicators",
                 "Topic": "See attached document which lists sector coverage with the respective indicator.",
                 "DatasetDescription": "For detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...",
                 "Contact": "Carlo Cafiero",
@@ -57,6 +57,7 @@ class TestFaostat:
                 {"name": "hxl"},
                 {"name": "food security"},
                 {"name": "indicators"},
+                {"name": "nutrition"},
             ],
             "id": "4e61d464-4943-4e97-973a-84673c1aaa87",
             "name": "approved",
@@ -111,7 +112,7 @@ class TestFaostat:
                     def fn():
                         return {
                             "Datasets": {
-                                "Dataset": TestFaostat.indicatorsets["Food Security"]
+                                "Dataset": TestFaostat.indicatorsets["Food Security and Nutrition"]
                             }
                         }
 
@@ -208,15 +209,15 @@ class TestFaostat:
 
         return Download()
 
-    def test_get_indicatortypes(self, configuration, downloader, mock_urlretrieve):
+    def test_download_indicatorsets(self, configuration, downloader, mock_urlretrieve):
         with temp_dir("faostat-test") as folder:
-            indicatortypesdata = download_indicatorsets(
+            indicatorsets = download_indicatorsets(
                 configuration["filelist_url"],
-                configuration["indicatorsetnames"],
+                configuration["categories"],
                 downloader,
                 folder,
             )
-            assert indicatortypesdata == TestFaostat.indicatorsets
+            assert indicatorsets == TestFaostat.indicatorsets
 
     def test_get_countries(self, downloader):
         countries, countrymapping = get_countries("http://yyy/", downloader)
@@ -233,7 +234,8 @@ class TestFaostat:
                 bites_disabled,
                 qc_indicators,
             ) = generate_dataset_and_showcase(
-                "Food Security",
+                "Food Security and Nutrition",
+                configuration["categories"],
                 TestFaostat.indicatorsets,
                 TestFaostat.country,
                 TestFaostat.countrymapping,
@@ -244,8 +246,8 @@ class TestFaostat:
             )
             assert dataset == {
                 "name": "faostat-food-security-indicators-for-afghanistan",
-                "title": "Afghanistan - Food Security Indicators",
-                "notes": "Food Security Indicators for Afghanistan.\n\nContains data from the FAOSTAT [bulk data service](http://lala/datasets_E.json).",
+                "title": "Afghanistan - Food Security and Nutrition Indicators",
+                "notes": "Food Security and Nutrition Indicators for Afghanistan.\n\nContains data from the FAOSTAT [bulk data service](http://lala/datasets_E.json).",
                 "maintainer": "196196be-6037-4488-8b71-d786adf4c081",
                 "owner_org": "ed727a5b-3e6e-4cd6-b97e-4a71532085e6",
                 "data_update_frequency": "365",
@@ -261,6 +263,10 @@ class TestFaostat:
                     },
                     {
                         "name": "food security",
+                        "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
+                    },
+                    {
+                        "name": "nutrition",
                         "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
                     },
                 ],
@@ -287,8 +293,8 @@ class TestFaostat:
             ]
             assert showcase == {
                 "name": "faostat-food-security-indicators-for-afghanistan-showcase",
-                "title": "Afghanistan - Food Security Indicators",
-                "notes": "Food Security Data Dashboard for Afghanistan",
+                "title": "Afghanistan - Food Security and Nutrition Indicators",
+                "notes": "Food Security and Nutrition Data Dashboard for Afghanistan",
                 "url": "http://www.fao.org/faostat/en/#country/AFG",
                 "image_url": "https://pbs.twimg.com/profile_images/1375385494167691269/Bc49-Yx8_400x400.jpg",
                 "tags": [
@@ -302,6 +308,10 @@ class TestFaostat:
                     },
                     {
                         "name": "food security",
+                        "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
+                    },
+                    {
+                        "name": "nutrition",
                         "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
                     },
                 ],

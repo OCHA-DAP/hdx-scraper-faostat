@@ -2,9 +2,10 @@
 filelist_url: "http://fenixservices.fao.org/faostat/static/bulkdownloads/datasets_E.json"
 countrygroup_url: "config/FAOSTAT_CountryGroups.csv"
 showcase_base_url: "http://www.fao.org/faostat/en/#country/"
-indicatorsetnames:
-  - category: "Food Security"
-    title: "Food Security Indicators"
+categories:
+  "Food Security and Nutrition":
+    title: "Food Security and Nutrition Indicators"
+    filename: "faostat-food-security-indicators-for-"
     quickcharts:
       code: "FS"
       indicators:
@@ -17,8 +18,9 @@ indicatorsetnames:
         - code: "21034"
           title: "Percentage of arable land equipped for irrigation"
           unit: "Percentage"
-  - category: "Prices"
+  "Prices":
     title: "Food Prices"
+    filename: "faostat-food-prices-for-"
     quickcharts:
       code: "CP"
       indicators:
