@@ -1,6 +1,6 @@
 # Collector specific configuration
-filelist_url: "http://lala/datasets_E.json"
-showcase_base_url: "http://www.fao.org/faostat/en/#country/"
+filelist_url: "https://lala/datasets_E.json"
+showcase_base_url: "https://www.fao.org/faostat/en/#country/"
 categories:
   "Food Security and Nutrition":
     title: "Food Security and Nutrition Indicators"
