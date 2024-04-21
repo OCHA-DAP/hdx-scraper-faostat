@@ -1,5 +1,6 @@
 ### Collector for FAOSTAT Datasets
-[![Build Status](https://travis-ci.org/OCHA-DAP/hdxscraper-faostat.svg?branch=main&ts=1)](https://travis-ci.org/OCHA-DAP/hdxscraper-faostat) [![Coverage Status](https://coveralls.io/repos/github/OCHA-DAP/hdxscraper-faostat/badge.svg?branch=main&ts=1)](https://coveralls.io/github/OCHA-DAP/hdxscraper-faostat?branch=main)
+[![Run tests](https://github.com/OCHA-DAP/hdx-scraper-faostat/actions/workflows/run-python-tests.yml/badge.svg)](https://github.com/OCHA-DAP/hdx-scraper-faostat/actions/workflows/run-python-tests.yml)
+[![Coverage Status](https://coveralls.io/repos/github/OCHA-DAP/hdx-scraper-faostat/badge.svg?branch=main&ts=1)](https://coveralls.io/github/OCHA-DAP/hdx-scraper-faostat?branch=main)
 
 FAOSTAT script scrapes food security data from [FAOSTAT](http://www.fao.org/faostat/en/) website and extracts population data country by country creating a dataset per country in HDX. It makes a three reads from FAOStat and then 1000 read/writes (API calls) to HDX in a one hour period. It creates 200 temporary files each around 50kb. It runs every week. 
 
