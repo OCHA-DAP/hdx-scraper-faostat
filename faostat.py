@@ -39,7 +39,7 @@ hxltags = {
 
 
 def download_indicatorsets(filelist_url, categories, downloader, folder):
-    indicatorsets = dict()
+    indicatorsets = {}
     response = downloader.download(filelist_url)
     jsonresponse = response.json()
 
@@ -91,7 +91,8 @@ def download_indicatorsets(filelist_url, categories, downloader, folder):
 
 
 def get_countries(countries_url, downloader):
-    countrymapping = dict()
+    countrydata = set()
+    countrymapping = {}
 
     _, iterator = downloader.get_tabular_rows(
         countries_url, headers=1, dict_form=True, format="csv"
@@ -108,12 +109,15 @@ def get_countries(countries_url, downloader):
             continue
         except ValueError:
             pass
+        countrycode = row["Country Code"].strip()
+        countryname = row["Country"].strip()
+        countrydata.add((countryiso, countryname, countrycode))
         countrymapping[row["Country Code"].strip()] = (
             countryiso,
             row["Country"].strip(),
         )
-    countries = list()
-    for countryiso, countryname in sorted(countrymapping.values()):
+    countries = []
+    for countryiso, countryname, countrycode in sorted(countrydata):
         newcountryname = Country.get_country_name_from_iso3(countryiso)
         if newcountryname:
             countries.append(
@@ -121,6 +125,7 @@ def get_countries(countries_url, downloader):
                     "iso3": countryiso,
                     "countryname": newcountryname,
                     "origname": countryname,
+                    "countrycode": countrycode,
                 }
             )
     return countries, countrymapping
@@ -139,6 +144,7 @@ def generate_dataset_and_showcase(
 ):
     countryiso = country["iso3"]
     countryname = country["countryname"]
+    countrycode = country["countrycode"]
     category = categories[categoryname]
     indicatorset = indicatorsets[categoryname]
     indicatorsetdisplayname = category["title"]
@@ -194,7 +200,7 @@ def generate_dataset_and_showcase(
 
     bites_disabled = [True, True, True]
     qc_indicators = None
-    categories = list()
+    categories = []
     for row in indicatorset:
         longname = row["DatasetName"]
         url = row["path"]
@@ -253,13 +259,20 @@ def generate_dataset_and_showcase(
         notes.append(f" covering the following categories: {', '.join(categories)}")
     dataset["notes"] = "".join(notes)
 
+    notes = f"""{categoryname} Data Dashboard for {countryname}\n\n
+FAO statistics collates and disseminates food and agricultural 
+statistics globally. The division develops methodologies and standards 
+for data collection, and holds regular meetings and workshops to support 
+member countries develop statistical systems. We produce publications, 
+working papers and statistical yearbooks that cover food security, prices, 
+production and trade and agri-environmental statistics."""
     showcase = Showcase(
         {
             "name": f"{slugified_name}-showcase",
             "title": title,
-            "notes": f"{categoryname} Data Dashboard for {countryname}",
-            "url": f"{showcase_base_url}{countryiso}",
-            "image_url": "https://pbs.twimg.com/profile_images/1375385494167691269/Bc49-Yx8_400x400.jpg",
+            "notes": notes,
+            "url": f"{showcase_base_url}{countrycode}",
+            "image_url": "https://www.fao.org/uploads/pics/food-agriculture.png",
         }
     )
     showcase.add_tags(tags)

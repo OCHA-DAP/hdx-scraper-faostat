@@ -1,7 +1,7 @@
 # Collector specific configuration
-filelist_url: "http://fenixservices.fao.org/faostat/static/bulkdownloads/datasets_E.json"
+filelist_url: "https://fenixservices.fao.org/faostat/static/bulkdownloads/datasets_E.json"
 countrygroup_url: "config/FAOSTAT_CountryGroups.csv"
-showcase_base_url: "http://www.fao.org/faostat/en/#country/"
+showcase_base_url: "https://www.fao.org/faostat/en/#country/"
 categories:
   "Food Security and Nutrition":
     title: "Food Security and Nutrition Indicators"
