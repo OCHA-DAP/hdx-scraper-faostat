@@ -3,12 +3,11 @@
 Unit tests for FAOSTAT.
 
 """
+
 import shutil
 from os.path import basename, join
 
 import pytest
-from faostat import download_indicatorsets, generate_dataset_and_showcase, \
-    get_countries
 from hdx.api.configuration import Configuration
 from hdx.api.locations import Locations
 from hdx.data.vocabulary import Vocabulary
@@ -17,10 +16,20 @@ from hdx.utilities.compare import assert_files_same
 from hdx.utilities.downloader import DownloadError
 from hdx.utilities.path import temp_dir
 
+from hdx.scraper.faostat.pipeline import (
+    download_indicatorsets,
+    generate_dataset_and_showcase,
+    get_countries,
+)
+
 
 class TestFaostat:
-    country = {"countrycode": "2", "countryname": "Afghanistan", "iso3": "AFG",
-               "origname": "Afghanistan"}
+    country = {
+        "countrycode": "2",
+        "countryname": "Afghanistan",
+        "iso3": "AFG",
+        "origname": "Afghanistan",
+    }
     countrymapping = {"2": ("AFG", "Afghanistan")}
     fsurl = "https://lala/Food_Security_Data_E_All_Data_(Normalized).zip"
     indicatorsets = {
@@ -47,8 +56,7 @@ class TestFaostat:
         Configuration._create(
             hdx_read_only=True,
             user_agent="test",
-            project_config_yaml=join("tests", "config",
-                                     "project_configuration.yaml"),
+            project_config_yaml=join("tests", "config", "project_configuration.yaml"),
         )
         Locations.set_validlocations(
             [{"name": "afg", "title": "Afghanistan"}]
@@ -111,11 +119,13 @@ class TestFaostat:
             def download(url):
                 response = Response()
                 if url == "https://lala/datasets_E.json":
+
                     def fn():
                         return {
                             "Datasets": {
                                 "Dataset": TestFaostat.indicatorsets[
-                                    "Food Security and Nutrition"]
+                                    "Food Security and Nutrition"
+                                ]
                             }
                         }
 
@@ -125,14 +135,13 @@ class TestFaostat:
             @staticmethod
             def download_file(url, path):
                 if url == "https://lala/Food_Security_Data_E_All_Data_(Normalized).zip":
-                    shutil.copyfile(join("tests", "fixtures", basename(path)),
-                                    path)
+                    shutil.copyfile(join("tests", "fixtures", basename(path)), path)
                     return path
                 raise DownloadError("Should not get here!")
 
             @staticmethod
-            def get_tabular_rows(url, **kwargs):
-                if url == "https://yyy/":
+            def get_tabular_rows(path, **kwargs):
+                if path == "mypath":
                     return ["Country Code", "ISO3 Code", "Country"], [
                         {
                             "Country Code": "2",
@@ -140,7 +149,7 @@ class TestFaostat:
                             "Country": "Afghanistan",
                         }
                     ]
-                elif "FS.csv" in url:
+                elif "FS.csv" in path:
                     return [
                         "Iso3",
                         "StartDate",
@@ -213,8 +222,7 @@ class TestFaostat:
 
         return Download()
 
-    def test_download_indicatorsets(self, configuration, downloader,
-                                    mock_urlretrieve):
+    def test_download_indicatorsets(self, configuration, downloader, mock_urlretrieve):
         with temp_dir("faostat-test") as folder:
             indicatorsets = download_indicatorsets(
                 configuration["filelist_url"],
@@ -225,7 +233,7 @@ class TestFaostat:
             assert indicatorsets == TestFaostat.indicatorsets
 
     def test_get_countries(self, downloader):
-        countries, countrymapping = get_countries("https://yyy/", downloader)
+        countries, countrymapping = get_countries("mypath", downloader)
         assert countries == [TestFaostat.country]
         assert countrymapping == TestFaostat.countrymapping
 
@@ -285,26 +293,22 @@ class TestFaostat:
                     "name": "Suite of Food Security Indicators for Afghanistan",
                     "description": "*Suite of Food Security Indicators:*\nFor detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...",
                     "format": "csv",
-                    "resource_type": "file.upload",
-                    "url_type": "upload",
                 },
                 {
                     "name": "QuickCharts-Suite of Food Security Indicators for Afghanistan",
                     "description": "Cut down data for QuickCharts",
                     "format": "csv",
-                    "resource_type": "file.upload",
-                    "url_type": "upload",
                 },
             ]
             assert showcase == {
                 "name": "faostat-food-security-indicators-for-afghanistan-showcase",
                 "title": "Afghanistan - Food Security and Nutrition Indicators",
                 "notes": """Food Security and Nutrition Data Dashboard for Afghanistan\n\n
-FAO statistics collates and disseminates food and agricultural 
-statistics globally. The division develops methodologies and standards 
-for data collection, and holds regular meetings and workshops to support 
-member countries develop statistical systems. We produce publications, 
-working papers and statistical yearbooks that cover food security, prices, 
+FAO statistics collates and disseminates food and agricultural
+statistics globally. The division develops methodologies and standards
+for data collection, and holds regular meetings and workshops to support
+member countries develop statistical systems. We produce publications,
+working papers and statistical yearbooks that cover food security, prices,
 production and trade and agri-environmental statistics.""",
                 "url": "https://www.fao.org/faostat/en/#country/2",
                 "image_url": "https://www.fao.org/uploads/pics/food-agriculture.png",
@@ -346,8 +350,6 @@ production and trade and agri-environmental statistics.""",
                 },
             ]
             file = "Suite of Food Security Indicators_AFG.csv"
-            assert_files_same(join("tests", "fixtures", file),
-                              join(folder, file))
+            assert_files_same(join("tests", "fixtures", file), join(folder, file))
             file = f"qc_{file}"
-            assert_files_same(join("tests", "fixtures", file),
-                              join(folder, file))
+            assert_files_same(join("tests", "fixtures", file), join(folder, file))

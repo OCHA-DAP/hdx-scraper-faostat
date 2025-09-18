@@ -1,0 +1,30 @@
+#########################
+# Project Configuration #
+#########################
+
+# Project name and version needed to run tests
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hdx-scraper-faostat"
+requires-python = ">=3.12"
+dependencies = [
+  "hdx-python-api>= 6.5.1",
+  "hdx-python-country>= 3.9.6",
+  "hdx-python-utilities>= 3.9.1",
+]
+
+dynamic = ["version"]
+
+[project.optional-dependencies]
+test = [
+  "pytest",
+  "pytest-cov"
+]
+dev = ["pre-commit"]
+
+[project.scripts]
+run = "hdx.scraper.faostat.__main__:main"

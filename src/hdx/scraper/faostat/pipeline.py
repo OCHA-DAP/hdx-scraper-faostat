@@ -56,7 +56,10 @@ def download_indicatorsets(filelist_url, categories, downloader, folder):
         for categoryname in categories:
             category = categories[categoryname]
             datasetname = row["DatasetName"]
-            if f"{categoryname}:" not in datasetname or "archive" in datasetname.lower():
+            if (
+                f"{categoryname}:" not in datasetname
+                or "archive" in datasetname.lower()
+            ):
                 continue
             filelocation = row["FileLocation"]
             urlpath = urlsplit(filelocation).path
@@ -90,12 +93,12 @@ def download_indicatorsets(filelist_url, categories, downloader, folder):
     return indicatorsets
 
 
-def get_countries(countries_url, downloader):
+def get_countries(countries_path, downloader):
     countrydata = set()
     countrymapping = {}
 
     _, iterator = downloader.get_tabular_rows(
-        countries_url, headers=1, dict_form=True, format="csv"
+        countries_path, headers=1, dict_form=True, format="csv"
     )
     for row in iterator:
         countryiso = row["ISO3 Code"]
@@ -260,11 +263,11 @@ def generate_dataset_and_showcase(
     dataset["notes"] = "".join(notes)
 
     notes = f"""{categoryname} Data Dashboard for {countryname}\n\n
-FAO statistics collates and disseminates food and agricultural 
-statistics globally. The division develops methodologies and standards 
-for data collection, and holds regular meetings and workshops to support 
-member countries develop statistical systems. We produce publications, 
-working papers and statistical yearbooks that cover food security, prices, 
+FAO statistics collates and disseminates food and agricultural
+statistics globally. The division develops methodologies and standards
+for data collection, and holds regular meetings and workshops to support
+member countries develop statistical systems. We produce publications,
+working papers and statistical yearbooks that cover food security, prices,
 production and trade and agri-environmental statistics."""
     showcase = Showcase(
         {
