@@ -42,10 +42,13 @@ def main():
                 filelist_url, categories, downloader, folder
             )
             logger.info(f"Number of categories to upload: {len(categories)}")
-            countries, countrymapping = get_countries(script_dir_plus_file(
-                                join("config", "FAOSTAT_CountryGroups.csv"),
-                                main,
-                            ), downloader)
+            countries, countrymapping = get_countries(
+                script_dir_plus_file(
+                    join("config", "FAOSTAT_CountryGroups.csv"),
+                    main,
+                ),
+                downloader,
+            )
             logger.info(f"Number of countries to upload: {len(countries)}")
             for info, country in progress_storing_folder(info, countries, "iso3"):
                 for categoryname in indicatorsets:
