@@ -217,7 +217,12 @@ class TestFaostat:
 
         return Download()
 
-    def test_download_indicatorsets(self, configuration, downloader, mock_urlretrieve):
+    def test_get_countries(self, downloader):
+        countries, countrymapping = get_countries("mypath", downloader)
+        assert countries == [TestFaostat.country]
+        assert countrymapping == TestFaostat.countrymapping
+
+    def test_generate_dataset_and_showcase(self, configuration, downloader):
         with temp_dir("faostat-test") as folder:
             indicatorsets = download_indicatorsets(
                 configuration["filelist_url"],
@@ -227,13 +232,6 @@ class TestFaostat:
             )
             assert indicatorsets == TestFaostat.indicatorsets
 
-    def test_get_countries(self, downloader):
-        countries, countrymapping = get_countries("mypath", downloader)
-        assert countries == [TestFaostat.country]
-        assert countrymapping == TestFaostat.countrymapping
-
-    def test_generate_dataset_and_showcase(self, configuration, downloader):
-        with temp_dir("faostat-test") as folder:
             filelist_url = configuration["filelist_url"]
             showcase_base_url = configuration["showcase_base_url"]
             (
