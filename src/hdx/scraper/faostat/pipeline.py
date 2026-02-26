@@ -25,17 +25,6 @@ from slugify import slugify
 logger = logging.getLogger(__name__)
 
 description = "FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics."
-hxltags = {
-    "Iso3": "#country+code",
-    "StartDate": "#date+start",
-    "EndDate": "#date+end",
-    "Year": "#date+year",
-    "Area": "#country+name",
-    "Item Code": "#indicator+code",
-    "Item": "#indicator+name",
-    "Unit": "#indicator+type",
-    "Value": "#indicator+value+num",
-}
 
 
 def download_indicatorsets(filelist_url, categories, downloader, folder):
@@ -43,18 +32,12 @@ def download_indicatorsets(filelist_url, categories, downloader, folder):
     response = downloader.download(filelist_url)
     jsonresponse = response.json()
 
-    def add_row(row, filepath, categoryname, category):
+    def add_row(row, filepath, categoryname):
         row["path"] = filepath
-        quickcharts = category.get("quickcharts")
-        if quickcharts and row["DatasetCode"] == quickcharts["code"]:
-            row["quickcharts"] = quickcharts["indicators"]
-        else:
-            row["quickcharts"] = None
         dict_of_lists_add(indicatorsets, categoryname, row)
 
     for row in jsonresponse["Datasets"]["Dataset"]:
         for categoryname in categories:
-            category = categories[categoryname]
             datasetname = row["DatasetName"]
             if (
                 f"{categoryname}:" not in datasetname
@@ -76,7 +59,7 @@ def download_indicatorsets(filelist_url, categories, downloader, folder):
                         with open(statusfile) as f:
                             status = f.read()
                             if status == "OK":
-                                add_row(row, filepath, categoryname, category)
+                                add_row(row, filepath, categoryname)
                                 continue
                     remove(statusfile)
                 remove(filepath)
@@ -89,7 +72,7 @@ def download_indicatorsets(filelist_url, categories, downloader, folder):
                 rename(path, filepath)
                 with open(statusfile, "w") as f:
                     f.write("OK")
-                add_row(row, filepath, categoryname, category)
+                add_row(row, filepath, categoryname)
     return indicatorsets
 
 
@@ -163,8 +146,8 @@ def generate_dataset_and_showcase(
         dataset.add_country_location(countryiso)
     except HDXError as e:
         logger.exception(f"{countryname} has a problem! {e}")
-        return None, None, None, None
-    tags = ["hxl", "indicators", "food security"]
+        return None, None
+    tags = ["indicators", "food security"]
     tag = categoryname.lower()
     if " - " in tag:
         tags.extend(tag.split(" - "))
@@ -201,8 +184,6 @@ def generate_dataset_and_showcase(
         row["EndDate"] = enddate.strftime("%Y-%m-%d")
         return {"startdate": startdate, "enddate": enddate}
 
-    bites_disabled = [True, True, True]
-    qc_indicators = None
     categories = []
     for row in indicatorset:
         longname = row["DatasetName"]
@@ -216,42 +197,24 @@ def generate_dataset_and_showcase(
             name = f"{category} data"
         resourcedata = {"name": f"{name} for {countryname}", "description": description}
         header_insertions = [(0, "EndDate"), (0, "StartDate"), (0, "Iso3")]
-        indicators_for_qc = row.get("quickcharts")
-        if indicators_for_qc:
-            quickcharts = {
-                "hashtag": "#indicator+code",
-                "values": [x["code"] for x in indicators_for_qc],
-                "numeric_hashtag": "#indicator+value+num",
-                "cutdown": 2,
-                "cutdownhashtags": ["#indicator+code", "#country+code", "#date+year"],
-            }
-            qc_indicators = indicators_for_qc
-        else:
-            quickcharts = None
-        success, results = dataset.download_and_generate_resource(
+        success, results = dataset.download_generate_resource(
             downloader,
             url,
-            hxltags,
             folder,
             filename,
             resourcedata,
             header_insertions=header_insertions,
             date_function=process_date,
-            quickcharts=quickcharts,
             encoding="WINDOWS-1252",
         )
         if success is False:
             logger.warning(f"{category} for {countryname} has no data!")
             continue
-        disabled_bites = results.get("bites_disabled")
-        if disabled_bites:
-            bites_disabled = disabled_bites
         categories.append(category)
 
     if dataset.number_of_resources() == 0:
         logger.warning(f"{countryname} has no data!")
-        return None, None, None, None
-    dataset.quickcharts_resource_last()
+        return None, None
     notes = [
         f"{indicatorsetdisplayname} for {countryname}.\n\n",
         f"Contains data from the FAOSTAT [bulk data service]({filelist_url})",
@@ -279,4 +242,4 @@ production and trade and agri-environmental statistics."""
         }
     )
     showcase.add_tags(tags)
-    return dataset, showcase, bites_disabled, qc_indicators
+    return dataset, showcase

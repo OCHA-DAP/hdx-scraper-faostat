@@ -55,8 +55,6 @@ def main():
                     (
                         dataset,
                         showcase,
-                        bites_disabled,
-                        qc_indicators,
                     ) = generate_dataset_and_showcase(
                         categoryname,
                         categories,
@@ -75,12 +73,8 @@ def main():
                                 main,
                             )
                         )
-                        dataset.generate_quickcharts(
-                            -1, bites_disabled=bites_disabled, indicators=qc_indicators
-                        )
                         dataset.create_in_hdx(
                             remove_additional_resources=True,
-                            hxl_update=False,
                             updated_by_script="HDX Scraper: FAOStat",
                             batch=batch,
                         )
