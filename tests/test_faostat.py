@@ -65,7 +65,6 @@ class TestFaostat:
         Vocabulary._tags_dict = {}
         Vocabulary._approved_vocabulary = {
             "tags": [
-                {"name": "hxl"},
                 {"name": "food security"},
                 {"name": "indicators"},
                 {"name": "nutrition"},
@@ -110,10 +109,6 @@ class TestFaostat:
                 "Value",
                 "Flag",
             ]
-
-            @staticmethod
-            def hxl_row(headers, hxltags, dict_form):
-                return {header: hxltags.get(header, "") for header in headers}
 
             @staticmethod
             def download(url):
@@ -222,7 +217,12 @@ class TestFaostat:
 
         return Download()
 
-    def test_download_indicatorsets(self, configuration, downloader, mock_urlretrieve):
+    def test_get_countries(self, downloader):
+        countries, countrymapping = get_countries("mypath", downloader)
+        assert countries == [TestFaostat.country]
+        assert countrymapping == TestFaostat.countrymapping
+
+    def test_generate_dataset_and_showcase(self, configuration, downloader):
         with temp_dir("faostat-test") as folder:
             indicatorsets = download_indicatorsets(
                 configuration["filelist_url"],
@@ -232,20 +232,11 @@ class TestFaostat:
             )
             assert indicatorsets == TestFaostat.indicatorsets
 
-    def test_get_countries(self, downloader):
-        countries, countrymapping = get_countries("mypath", downloader)
-        assert countries == [TestFaostat.country]
-        assert countrymapping == TestFaostat.countrymapping
-
-    def test_generate_dataset_and_showcase(self, configuration, downloader):
-        with temp_dir("faostat-test") as folder:
             filelist_url = configuration["filelist_url"]
             showcase_base_url = configuration["showcase_base_url"]
             (
                 dataset,
                 showcase,
-                bites_disabled,
-                qc_indicators,
             ) = generate_dataset_and_showcase(
                 "Food Security and Nutrition",
                 configuration["categories"],
@@ -266,10 +257,6 @@ class TestFaostat:
                 "data_update_frequency": "365",
                 "subnational": "0",
                 "tags": [
-                    {
-                        "name": "hxl",
-                        "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
-                    },
                     {
                         "name": "indicators",
                         "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
@@ -294,11 +281,6 @@ class TestFaostat:
                     "description": "*Suite of Food Security Indicators:*\nFor detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...",
                     "format": "csv",
                 },
-                {
-                    "name": "QuickCharts-Suite of Food Security Indicators for Afghanistan",
-                    "description": "Cut down data for QuickCharts",
-                    "format": "csv",
-                },
             ]
             assert showcase == {
                 "name": "faostat-food-security-indicators-for-afghanistan-showcase",
@@ -314,10 +296,6 @@ production and trade and agri-environmental statistics.""",
                 "image_url": "https://www.fao.org/uploads/pics/food-agriculture.png",
                 "tags": [
                     {
-                        "name": "hxl",
-                        "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
-                    },
-                    {
                         "name": "indicators",
                         "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
                     },
@@ -331,25 +309,5 @@ production and trade and agri-environmental statistics.""",
                     },
                 ],
             }
-            assert bites_disabled == [False, True, True]
-            assert qc_indicators == [
-                {
-                    "code": "21010",
-                    "title": "Average dietary energy supply adequacy",
-                    "unit": "Percentage",
-                },
-                {
-                    "code": "210041",
-                    "title": "Prevalence of undernourishment",
-                    "unit": "Percentage",
-                },
-                {
-                    "code": "21034",
-                    "title": "Percentage of arable land equipped for irrigation",
-                    "unit": "Percentage",
-                },
-            ]
             file = "Suite of Food Security Indicators_AFG.csv"
-            assert_files_same(join("tests", "fixtures", file), join(folder, file))
-            file = f"qc_{file}"
             assert_files_same(join("tests", "fixtures", file), join(folder, file))

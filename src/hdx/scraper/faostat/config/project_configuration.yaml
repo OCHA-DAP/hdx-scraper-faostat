@@ -6,30 +6,6 @@ categories:
   "Food Security and Nutrition":
     title: "Food Security and Nutrition Indicators"
     filename: "faostat-food-security-indicators-for-"
-    quickcharts:
-      code: "FS"
-      indicators:
-        - code: "21010"
-          title: "Average dietary energy supply adequacy"
-          unit: "Percentage"
-        - code: "210041"
-          title: "Prevalence of undernourishment"
-          unit: "Percentage"
-        - code: "21034"
-          title: "Percentage of arable land equipped for irrigation"
-          unit: "Percentage"
   "Prices":
     title: "Food Prices"
     filename: "faostat-food-prices-for-"
-    quickcharts:
-      code: "CP"
-      indicators:
-        - code: "23013"
-          title: "Consumer Prices, Food"
-          unit: "Consumer Prices, Food Indices (2015 = 100)"
-        - code: "23012"
-          title: "Consumer Prices, General"
-          unit: "Consumer Prices, General Indices (2015 = 100)"
-        - code: "23014"
-          title: "Food Price Inflation"
-          unit: "Percentage"
