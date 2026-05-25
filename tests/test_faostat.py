@@ -15,6 +15,7 @@ from hdx.location.country import Country
 from hdx.utilities.compare import assert_files_same
 from hdx.utilities.downloader import DownloadError
 from hdx.utilities.path import temp_dir
+from hdx.utilities.retriever import Retrieve
 
 from hdx.scraper.faostat.pipeline import (
     download_indicatorsets,
@@ -88,47 +89,21 @@ class TestFaostat:
         return myurlretrieve
 
     @pytest.fixture(scope="function")
-    def downloader(self):
-        class Response:
+    def retriever(self):
+        class MockDownloader:
             @staticmethod
-            def json():
-                pass
-
-        class Download:
-            response = Response()
-            response.headers = [
-                "Area Code",
-                "Area",
-                "Item Code",
-                "Item",
-                "Element Code",
-                "Element",
-                "Year Code",
-                "Year",
-                "Unit",
-                "Value",
-                "Flag",
-            ]
-
-            @staticmethod
-            def download(url):
-                response = Response()
+            def download_json(url, **kwargs):
                 if url == "https://lala/datasets_E.json":
-
-                    def fn():
-                        return {
-                            "Datasets": {
-                                "Dataset": TestFaostat.indicatorsets[
-                                    "Food Security and Nutrition"
-                                ]
-                            }
+                    return {
+                        "Datasets": {
+                            "Dataset": TestFaostat.indicatorsets[
+                                "Food Security and Nutrition"
+                            ]
                         }
-
-                    response.json = fn
-                return response
+                    }
 
             @staticmethod
-            def download_file(url, path):
+            def download_file(url, path=None, **kwargs):
                 if url == "https://lala/Food_Security_Data_E_All_Data_(Normalized).zip":
                     shutil.copyfile(join("tests", "fixtures", basename(path)), path)
                     return path
@@ -144,7 +119,7 @@ class TestFaostat:
                             "Country": "Afghanistan",
                         }
                     ]
-                elif "FS.csv" in path:
+                elif "FS.csv" in str(path):
                     return [
                         "Iso3",
                         "StartDate",
@@ -215,19 +190,27 @@ class TestFaostat:
                         },
                     ]
 
-        return Download()
+        with temp_dir("faostat-retriever") as tmpdir:
+            yield Retrieve(
+                downloader=MockDownloader(),
+                fallback_dir=tmpdir,
+                saved_dir=tmpdir,
+                temp_dir=tmpdir,
+                save=False,
+                use_saved=False,
+            )
 
-    def test_get_countries(self, downloader):
-        countries, countrymapping = get_countries("mypath", downloader)
+    def test_get_countries(self, retriever):
+        countries, countrymapping = get_countries("mypath", retriever)
         assert countries == [TestFaostat.country]
         assert countrymapping == TestFaostat.countrymapping
 
-    def test_generate_dataset_and_showcase(self, configuration, downloader):
+    def test_generate_dataset_and_showcase(self, configuration, retriever):
         with temp_dir("faostat-test") as folder:
             indicatorsets = download_indicatorsets(
                 configuration["filelist_url"],
                 configuration["categories"],
-                downloader,
+                retriever,
                 folder,
             )
             assert indicatorsets == TestFaostat.indicatorsets
@@ -245,7 +228,7 @@ class TestFaostat:
                 TestFaostat.countrymapping,
                 showcase_base_url,
                 filelist_url,
-                downloader,
+                retriever,
                 folder,
             )
             assert dataset == {

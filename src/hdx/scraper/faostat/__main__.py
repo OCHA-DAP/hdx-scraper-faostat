@@ -8,13 +8,14 @@ import logging
 from os.path import expanduser, join
 
 from hdx.api.configuration import Configuration
-from hdx.facades.simple import facade
+from hdx.facades.infer_arguments import facade
 from hdx.utilities.downloader import Download
 from hdx.utilities.path import (
     progress_storing_folder,
     script_dir_plus_file,
     wheretostart_tempdir_batch,
 )
+from hdx.utilities.retriever import Retrieve
 
 from hdx.scraper.faostat.pipeline import (
     download_indicatorsets,
@@ -25,9 +26,13 @@ from hdx.scraper.faostat.pipeline import (
 logger = logging.getLogger(__name__)
 
 lookup = "hdx-scraper-faostat"
+_SAVED_DATA_DIR = "saved_data"
 
 
-def main():
+def main(
+    save: bool = False,
+    use_saved: bool = False,
+) -> None:
     """Generate dataset and create it in HDX"""
 
     configuration = Configuration.read()
@@ -38,8 +43,16 @@ def main():
         with wheretostart_tempdir_batch(lookup) as info:
             folder = info["folder"]
             batch = info["batch"]
+            retriever = Retrieve(
+                downloader=downloader,
+                fallback_dir=folder,
+                saved_dir=_SAVED_DATA_DIR,
+                temp_dir=folder,
+                save=save,
+                use_saved=use_saved,
+            )
             indicatorsets = download_indicatorsets(
-                filelist_url, categories, downloader, folder
+                filelist_url, categories, retriever, folder
             )
             logger.info(f"Number of categories to upload: {len(categories)}")
             countries, countrymapping = get_countries(
@@ -47,7 +60,7 @@ def main():
                     join("config", "FAOSTAT_CountryGroups.csv"),
                     main,
                 ),
-                downloader,
+                retriever,
             )
             logger.info(f"Number of countries to upload: {len(countries)}")
             for info, country in progress_storing_folder(info, countries, "iso3"):
@@ -63,7 +76,7 @@ def main():
                         countrymapping,
                         showcase_base_url,
                         filelist_url,
-                        downloader,
+                        retriever,
                         info["folder"],
                     )
                     if dataset:

@@ -8,9 +8,8 @@ Reads FAOSTAT JSON and creates datasets.
 """
 
 import logging
-from datetime import datetime, timedelta
-from os import remove, rename
-from os.path import basename, exists, getctime, join
+from os import rename
+from os.path import basename, join
 from urllib.parse import urlsplit
 from zipfile import ZipFile
 
@@ -27,10 +26,9 @@ logger = logging.getLogger(__name__)
 description = "FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics."
 
 
-def download_indicatorsets(filelist_url, categories, downloader, folder):
+def download_indicatorsets(filelist_url, categories, retriever, folder):
     indicatorsets = {}
-    response = downloader.download(filelist_url)
-    jsonresponse = response.json()
+    jsonresponse = retriever.download_json(filelist_url, "datasets_E.json")
 
     def add_row(row, filepath, categoryname):
         row["path"] = filepath
@@ -51,36 +49,21 @@ def download_indicatorsets(filelist_url, categories, downloader, folder):
                 continue
             indicatorsetcode = row["DatasetCode"]
             filepath = join(folder, f"{indicatorsetcode}.csv")
-            statusfile = join(folder, f"{indicatorsetcode}.txt")
-            if exists(filepath):
-                if exists(statusfile):
-                    filedate = datetime.fromtimestamp(getctime(statusfile))
-                    if filedate > (datetime.now() - timedelta(days=1)):
-                        with open(statusfile) as f:
-                            status = f.read()
-                            if status == "OK":
-                                add_row(row, filepath, categoryname)
-                                continue
-                    remove(statusfile)
-                remove(filepath)
-            path = filepath.replace(".csv", ".zip")
-            if exists(path):
-                remove(path)
-            path = downloader.download_file(filelocation, path=path)
-            with ZipFile(path, "r") as zip:
-                path = zip.extract(filename, path=folder)
-                rename(path, filepath)
-                with open(statusfile, "w") as f:
-                    f.write("OK")
-                add_row(row, filepath, categoryname)
+            zip_path = retriever.download_file(
+                filelocation, filename=f"{indicatorsetcode}.zip"
+            )
+            with ZipFile(zip_path, "r") as z:
+                extracted = z.extract(filename, path=folder)
+                rename(extracted, filepath)
+            add_row(row, filepath, categoryname)
     return indicatorsets
 
 
-def get_countries(countries_path, downloader):
+def get_countries(countries_path, retriever):
     countrydata = set()
     countrymapping = {}
 
-    _, iterator = downloader.get_tabular_rows(
+    _, iterator = retriever.downloader.get_tabular_rows(
         countries_path, headers=1, dict_form=True, format="csv"
     )
     for row in iterator:
@@ -125,7 +108,7 @@ def generate_dataset_and_showcase(
     countrymapping,
     showcase_base_url,
     filelist_url,
-    downloader,
+    retriever,
     folder,
 ):
     countryiso = country["iso3"]
@@ -198,7 +181,7 @@ def generate_dataset_and_showcase(
         resourcedata = {"name": f"{name} for {countryname}", "description": description}
         header_insertions = [(0, "EndDate"), (0, "StartDate"), (0, "Iso3")]
         success, results = dataset.download_generate_resource(
-            downloader,
+            retriever.downloader,
             url,
             folder,
             filename,
