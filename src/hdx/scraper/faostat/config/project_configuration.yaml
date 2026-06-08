@@ -5,7 +5,43 @@ showcase_base_url: "https://www.fao.org/faostat/en/#country/"
 categories:
   "Food Security and Nutrition":
     title: "Food Security and Nutrition Indicators"
-    filename: "faostat-food-security-indicators-for-"
+    filename: "faostat-food-security-indicators"
+    codes:
+      FS: "faostat-food-security-indicators"
+      FBS: "faostat-food-balances"
+      CAHD: "faostat-cost-affordability-healthy-diet"
+      MDDW: "faostat-minimum-dietary-diversity-women"
+    tags:
+      - food
+      - food security
+      - nutrition
   "Prices":
     title: "Food Prices"
-    filename: "faostat-food-prices-for-"
+    filename: "faostat-food-prices"
+    codes:
+      CP: "faostat-consumer-price-indices"
+      PD: "faostat-producer-price-deflators"
+      PE: "faostat-exchange-rates"
+      PP: "faostat-producer-prices"
+    tags:
+      - food prices
+  "Production":
+    title: "Crops and Livestock"
+    filename: "faostat-crops-livestock-production"
+    codes:
+      QCL: "faostat-crops-livestock-products"
+      TCL: "faostat-trade-crops-livestock"
+    tags:
+      - agriculture
+      - food production
+      - trade
+  "Land, Inputs and Sustainability":
+    title: "Land Use, Fertilizers and Inputs"
+    filename: "faostat-land-inputs"
+    codes:
+      RFN: "faostat-fertilizers-by-nutrient"
+      RFB: "faostat-fertilizers-by-product"
+      RL: "faostat-land-use"
+    tags:
+      - agriculture
+      - land use
