@@ -93,7 +93,9 @@ def get_countries(countries_path, retriever):
         )
     countries = []
     for countryiso, countryname, countrycode in sorted(countrydata):
-        if Country.get_gho_status_from_iso3(countryiso) or Country.get_hrp_status_from_iso3(countryiso):
+        if Country.get_gho_status_from_iso3(
+            countryiso
+        ) or Country.get_hrp_status_from_iso3(countryiso):
             newcountryname = Country.get_country_name_from_iso3(countryiso)
             if newcountryname:
                 countries.append(
@@ -219,7 +221,9 @@ def generate_dataset_and_showcase(
         url = row["path"]
         category = longname
         indicatorsetcode = row["DatasetCode"]
-        description_part = codes_config[indicatorsetcode].removeprefix("faostat-").replace("-", "_")
+        description_part = (
+            codes_config[indicatorsetcode].removeprefix("faostat-").replace("-", "_")
+        )
         filename = f"{countryiso.lower()}_faostat_{description_part}.csv"
         description = f"*{category}:*\n{row['DatasetDescription']}"
         if category[-10:] == "Indicators":

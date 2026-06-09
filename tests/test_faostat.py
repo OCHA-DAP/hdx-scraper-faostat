@@ -58,7 +58,12 @@ class TestFaostat:
         Configuration._create(
             hdx_read_only=True,
             user_agent="test",
-            project_config_yaml=Path("src") / "hdx" / "scraper" / "faostat" / "config" / "project_configuration.yaml",
+            project_config_yaml=Path("src")
+            / "hdx"
+            / "scraper"
+            / "faostat"
+            / "config"
+            / "project_configuration.yaml",
         )
         Locations.set_validlocations(
             [{"name": "afg", "title": "Afghanistan"}]
