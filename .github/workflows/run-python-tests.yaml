@@ -33,7 +33,7 @@ jobs:
           uv run ruff check
 
       - name: Test with pytest
-        run: uv run pytest
+        run: uv run pytest --cov --cov-report=xml
 
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
@@ -43,7 +43,6 @@ jobs:
 
       - name: Publish in Coveralls
         uses: coverallsapp/github-action@v2
-        if: always()
+        if: success()
         with:
           flag-name: tests
-          format: lcov

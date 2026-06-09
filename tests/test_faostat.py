@@ -4,8 +4,11 @@ Unit tests for FAOSTAT.
 
 """
 
+import csv
+import logging
 import shutil
 from os.path import basename, join
+from pathlib import Path
 
 import pytest
 from hdx.api.configuration import Configuration
@@ -21,6 +24,7 @@ from hdx.scraper.faostat.pipeline import (
     download_indicatorsets,
     generate_dataset_and_showcase,
     get_countries,
+    log_latest_dates,
 )
 
 
@@ -57,7 +61,12 @@ class TestFaostat:
         Configuration._create(
             hdx_read_only=True,
             user_agent="test",
-            project_config_yaml=join("tests", "config", "project_configuration.yaml"),
+            project_config_yaml=Path("src")
+            / "hdx"
+            / "scraper"
+            / "faostat"
+            / "config"
+            / "project_configuration.yaml",
         )
         Locations.set_validlocations(
             [{"name": "afg", "title": "Afghanistan"}]
@@ -93,14 +102,13 @@ class TestFaostat:
         class MockDownloader:
             @staticmethod
             def download_json(url, **kwargs):
-                if url == "https://lala/datasets_E.json":
-                    return {
-                        "Datasets": {
-                            "Dataset": TestFaostat.indicatorsets[
-                                "Food Security and Nutrition"
-                            ]
-                        }
+                return {
+                    "Datasets": {
+                        "Dataset": TestFaostat.indicatorsets[
+                            "Food Security and Nutrition"
+                        ]
                     }
+                }
 
             @staticmethod
             def download_file(url, path=None, **kwargs):
@@ -205,6 +213,68 @@ class TestFaostat:
         assert countries == [TestFaostat.country]
         assert countrymapping == TestFaostat.countrymapping
 
+    def test_codes_filter(self):
+        # FBS is allowed; CB shares the same category prefix but is not in codes list
+        fsurl = "https://lala/Food_Security_Data_E_All_Data_(Normalized).zip"
+        categories = {
+            "Food Balances": {
+                "title": "Food Balance Sheets",
+                "filename": "faostat-food-balance-sheets-for-",
+                "codes": {"FBS": "faostat-food-balances"},
+            }
+        }
+
+        class MockDownloader:
+            @staticmethod
+            def download_json(url, **kwargs):
+                return {
+                    "Datasets": {
+                        "Dataset": [
+                            {
+                                "DatasetCode": "FBS",
+                                "DatasetName": "Food Balances: Food Balances (2010-)",
+                                "DatasetDescription": "Food balance sheets.",
+                                "FileLocation": fsurl,
+                            },
+                            {
+                                "DatasetCode": "CB",
+                                "DatasetName": "Food Balances: Commodity Balances (non-food) (2010-)",
+                                "DatasetDescription": "Commodity balances.",
+                                "FileLocation": "https://lala/CommodityBalances_E_All_Data_(Normalized).zip",
+                            },
+                        ]
+                    }
+                }
+
+            @staticmethod
+            def download_file(url, path=None, **kwargs):
+                shutil.copyfile(join("tests", "fixtures", "FS.zip"), path)
+                return path
+
+            @staticmethod
+            def get_tabular_rows(path, **kwargs):
+                return [], []
+
+        with temp_dir("faostat-codes-filter") as tmpdir:
+            test_retriever = Retrieve(
+                downloader=MockDownloader(),
+                fallback_dir=tmpdir,
+                saved_dir=tmpdir,
+                temp_dir=tmpdir,
+                save=False,
+                use_saved=False,
+            )
+            indicatorsets = download_indicatorsets(
+                "https://lala/datasets_E.json",
+                categories,
+                test_retriever,
+                tmpdir,
+            )
+        assert "Food Balances" in indicatorsets
+        codes_in_result = [r["DatasetCode"] for r in indicatorsets["Food Balances"]]
+        assert "FBS" in codes_in_result
+        assert "CB" not in codes_in_result
+
     def test_generate_dataset_and_showcase(self, configuration, retriever):
         with temp_dir("faostat-test") as folder:
             indicatorsets = download_indicatorsets(
@@ -232,18 +302,14 @@ class TestFaostat:
                 folder,
             )
             assert dataset == {
-                "name": "faostat-food-security-indicators-for-afghanistan",
+                "name": "afg-faostat-food-security-indicators",
                 "title": "Afghanistan - Food Security and Nutrition Indicators",
-                "notes": "Food Security and Nutrition Indicators for Afghanistan.\n\nContains data from the FAOSTAT [bulk data service](https://lala/datasets_E.json).",
+                "notes": "Food Security and Nutrition Indicators for Afghanistan.\n\nContains data from the FAOSTAT [bulk data service](https://fenixservices.fao.org/faostat/static/bulkdownloads/datasets_E.json).",
                 "maintainer": "196196be-6037-4488-8b71-d786adf4c081",
                 "owner_org": "ed727a5b-3e6e-4cd6-b97e-4a71532085e6",
                 "data_update_frequency": "365",
                 "subnational": "0",
                 "tags": [
-                    {
-                        "name": "indicators",
-                        "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
-                    },
                     {
                         "name": "food security",
                         "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
@@ -260,13 +326,13 @@ class TestFaostat:
             resources = dataset.get_resources()
             assert resources == [
                 {
-                    "name": "Suite of Food Security Indicators for Afghanistan",
-                    "description": "*Suite of Food Security Indicators:*\nFor detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...",
+                    "name": "Food Security and Nutrition: Suite of Food Security Indicators for Afghanistan",
+                    "description": "*Food Security and Nutrition: Suite of Food Security Indicators:*\nFor detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...",
                     "format": "csv",
                 },
             ]
             assert showcase == {
-                "name": "faostat-food-security-indicators-for-afghanistan-showcase",
+                "name": "afg-faostat-food-security-indicators-showcase",
                 "title": "Afghanistan - Food Security and Nutrition Indicators",
                 "notes": """Food Security and Nutrition Data Dashboard for Afghanistan\n\n
 FAO statistics collates and disseminates food and agricultural
@@ -279,10 +345,6 @@ production and trade and agri-environmental statistics.""",
                 "image_url": "https://www.fao.org/uploads/pics/food-agriculture.png",
                 "tags": [
                     {
-                        "name": "indicators",
-                        "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
-                    },
-                    {
                         "name": "food security",
                         "vocabulary_id": "4e61d464-4943-4e97-973a-84673c1aaa87",
                     },
@@ -292,5 +354,54 @@ production and trade and agri-environmental statistics.""",
                     },
                 ],
             }
-            file = "Suite of Food Security Indicators_AFG.csv"
+            file = "afg_faostat_food_security_indicators.csv"
             assert_files_same(join("tests", "fixtures", file), join(folder, file))
+
+    def test_log_latest_dates(self, tmp_path, caplog):
+        csv_path_fs = tmp_path / "FS.csv"
+        with open(csv_path_fs, "w", encoding="WINDOWS-1252", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["Area Code", "Year", "Months"])
+            writer.writeheader()
+            writer.writerows(
+                [
+                    # 2022 range, no month → sets max_year=2022, max_month=None
+                    {"Area Code": "2", "Year": "2020-2022", "Months": ""},
+                    # 2021 < 2022 → ignored
+                    {"Area Code": "2", "Year": "2021", "Months": "March"},
+                    # 2022, November → max_month becomes 11
+                    {"Area Code": "2", "Year": "2022", "Months": "November"},
+                    # 2022, Annual value treated as no month → max_month unchanged
+                    {"Area Code": "2", "Year": "2022", "Months": "Annual value"},
+                    # wrong country code → skipped
+                    {"Area Code": "99", "Year": "2025", "Months": ""},
+                    # empty year → skipped
+                    {"Area Code": "2", "Year": "", "Months": ""},
+                    # unparseable year → skipped
+                    {"Area Code": "2", "Year": "N/A", "Months": ""},
+                ]
+            )
+
+        # CB dataset: no rows match countrycodes → nothing logged for CB
+        csv_path_cb = tmp_path / "CB.csv"
+        with open(csv_path_cb, "w", encoding="WINDOWS-1252", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["Area Code", "Year", "Months"])
+            writer.writeheader()
+            writer.writerows([{"Area Code": "99", "Year": "2024", "Months": ""}])
+
+        indicatorsets = {
+            "Food Security": [
+                {"DatasetCode": "FS", "path": str(csv_path_fs)},
+                # duplicate code — first path wins, this one must not be used
+                {"DatasetCode": "FS", "path": str(tmp_path / "nonexistent.csv")},
+            ],
+            "Balances": [
+                {"DatasetCode": "CB", "path": str(csv_path_cb)},
+            ],
+        }
+
+        with caplog.at_level(logging.INFO, logger="hdx.scraper.faostat.pipeline"):
+            log_latest_dates(indicatorsets, ["2"])
+
+        messages = [r.message for r in caplog.records]
+        assert "Latest date for FS: November 2022" in messages
+        assert not any("CB" in m for m in messages)

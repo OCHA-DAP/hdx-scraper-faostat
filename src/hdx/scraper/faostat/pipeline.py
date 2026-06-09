@@ -7,7 +7,9 @@ Reads FAOSTAT JSON and creates datasets.
 
 """
 
+import csv
 import logging
+from datetime import datetime
 from os import rename
 from os.path import basename, join
 from urllib.parse import urlsplit
@@ -30,32 +32,36 @@ def download_indicatorsets(filelist_url, categories, retriever, folder):
     indicatorsets = {}
     jsonresponse = retriever.download_json(filelist_url, "datasets_E.json")
 
+    code_to_category = {}
+    for categoryname, category in categories.items():
+        for code in category.get("codes", {}):
+            code_to_category[code] = categoryname
+
     def add_row(row, filepath, categoryname):
         row["path"] = filepath
         dict_of_lists_add(indicatorsets, categoryname, row)
 
     for row in jsonresponse["Datasets"]["Dataset"]:
-        for categoryname in categories:
-            datasetname = row["DatasetName"]
-            if (
-                f"{categoryname}:" not in datasetname
-                or "archive" in datasetname.lower()
-            ):
-                continue
-            filelocation = row["FileLocation"]
-            urlpath = urlsplit(filelocation).path
-            filename = basename(urlpath).replace("zip", "csv")
-            if "Archive" in filename:
-                continue
-            indicatorsetcode = row["DatasetCode"]
-            filepath = join(folder, f"{indicatorsetcode}.csv")
-            zip_path = retriever.download_file(
-                filelocation, filename=f"{indicatorsetcode}.zip"
-            )
-            with ZipFile(zip_path, "r") as z:
-                extracted = z.extract(filename, path=folder)
-                rename(extracted, filepath)
-            add_row(row, filepath, categoryname)
+        datasetname = row["DatasetName"]
+        if "archive" in datasetname.lower():
+            continue
+        indicatorsetcode = row["DatasetCode"]
+        categoryname = code_to_category.get(indicatorsetcode)
+        if categoryname is None:
+            continue
+        filelocation = row["FileLocation"]
+        urlpath = urlsplit(filelocation).path
+        filename = basename(urlpath).replace("zip", "csv")
+        if "Archive" in filename:
+            continue
+        filepath = join(folder, f"{indicatorsetcode}.csv")
+        zip_path = retriever.download_file(
+            filelocation, filename=f"{indicatorsetcode}.zip"
+        )
+        with ZipFile(zip_path, "r") as z:
+            extracted = z.extract(filename, path=folder)
+            rename(extracted, filepath)
+        add_row(row, filepath, categoryname)
     return indicatorsets
 
 
@@ -87,17 +93,65 @@ def get_countries(countries_path, retriever):
         )
     countries = []
     for countryiso, countryname, countrycode in sorted(countrydata):
-        newcountryname = Country.get_country_name_from_iso3(countryiso)
-        if newcountryname:
-            countries.append(
-                {
-                    "iso3": countryiso,
-                    "countryname": newcountryname,
-                    "origname": countryname,
-                    "countrycode": countrycode,
-                }
-            )
+        if Country.get_gho_status_from_iso3(
+            countryiso
+        ) or Country.get_hrp_status_from_iso3(countryiso):
+            newcountryname = Country.get_country_name_from_iso3(countryiso)
+            if newcountryname:
+                countries.append(
+                    {
+                        "iso3": countryiso,
+                        "countryname": newcountryname,
+                        "origname": countryname,
+                        "countrycode": countrycode,
+                    }
+                )
     return countries, countrymapping
+
+
+def log_latest_dates(indicatorsets, countrycodes):
+    seen = {}
+    for indicatorset in indicatorsets.values():
+        for row in indicatorset:
+            code = row["DatasetCode"]
+            if code not in seen:
+                seen[code] = row["path"]
+    for code, filepath in sorted(seen.items()):
+        max_year = None
+        max_month = None
+        with open(filepath, encoding="WINDOWS-1252") as f:
+            for data_row in csv.DictReader(f):
+                countrycode = data_row.get("Area Code")
+                if countrycode is None:
+                    continue
+                if countrycode not in countrycodes:
+                    continue
+                year = data_row.get("Year")
+                if not year:
+                    continue
+                try:
+                    end_year = int(year.split("-")[-1].strip())
+                except ValueError:
+                    continue
+                month_str = data_row.get("Months")
+                month = None
+                if month_str and month_str != "Annual value":
+                    try:
+                        month = datetime.strptime(month_str, "%B").month
+                    except ValueError:
+                        pass
+                if max_year is None or end_year > max_year:
+                    max_year = end_year
+                    max_month = month
+                elif end_year == max_year:
+                    if month is not None and (max_month is None or month > max_month):
+                        max_month = month
+        if max_year is not None:
+            if max_month is not None:
+                label = datetime(max_year, max_month, 1).strftime("%B %Y")
+            else:
+                label = str(max_year)
+            logger.info(f"Latest date for {code}: {label}")
 
 
 def generate_dataset_and_showcase(
@@ -118,7 +172,7 @@ def generate_dataset_and_showcase(
     indicatorset = indicatorsets[categoryname]
     indicatorsetdisplayname = category["title"]
     title = f"{countryname} - {indicatorsetdisplayname}"
-    slugified_name = slugify(f"{category['filename']}{countryname.lower()}")
+    slugified_name = slugify(f"{countryiso.lower()}-{category['filename']}")
     logger.info(f"Creating dataset: {title}")
     dataset = Dataset({"name": slugified_name, "title": title})
     dataset.set_maintainer("196196be-6037-4488-8b71-d786adf4c081")
@@ -130,15 +184,9 @@ def generate_dataset_and_showcase(
     except HDXError as e:
         logger.exception(f"{countryname} has a problem! {e}")
         return None, None
-    tags = ["indicators", "food security"]
-    tag = categoryname.lower()
-    if " - " in tag:
-        tags.extend(tag.split(" - "))
-    elif " and " in tag:
-        tags.extend(tag.split(" and "))
-    else:
-        tags.append(tag)
+    tags = category.get("tags", [])
     dataset.add_tags(tags)
+    codes_config = category.get("codes", {})
 
     def process_date(row):
         countrycode = row.get("Area Code")
@@ -171,8 +219,12 @@ def generate_dataset_and_showcase(
     for row in indicatorset:
         longname = row["DatasetName"]
         url = row["path"]
-        category = longname.split(": ")[1]
-        filename = f"{category}_{countryiso}.csv"
+        category = longname
+        indicatorsetcode = row["DatasetCode"]
+        description_part = (
+            codes_config[indicatorsetcode].removeprefix("faostat-").replace("-", "_")
+        )
+        filename = f"{countryiso.lower()}_faostat_{description_part}.csv"
         description = f"*{category}:*\n{row['DatasetDescription']}"
         if category[-10:] == "Indicators":
             name = category
@@ -180,15 +232,20 @@ def generate_dataset_and_showcase(
             name = f"{category} data"
         resourcedata = {"name": f"{name} for {countryname}", "description": description}
         header_insertions = [(0, "EndDate"), (0, "StartDate"), (0, "Iso3")]
-        success, results = dataset.download_generate_resource(
-            retriever.downloader,
+        headers, iterator = retriever.downloader.get_tabular_rows(
             url,
+            dict_form=True,
+            header_insertions=header_insertions,
+            format="csv",
+            encoding="WINDOWS-1252",
+        )
+        success, results = dataset.generate_resource(
             folder,
             filename,
+            iterator,
             resourcedata,
-            header_insertions=header_insertions,
+            headers,
             date_function=process_date,
-            encoding="WINDOWS-1252",
         )
         if success is False:
             logger.warning(f"{category} for {countryname} has no data!")

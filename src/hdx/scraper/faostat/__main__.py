@@ -63,6 +63,7 @@ def main(
                 retriever,
             )
             logger.info(f"Number of countries to upload: {len(countries)}")
+            #            log_latest_dates(indicatorsets, [x["countrycode"] for x in countries])
             for info, country in progress_storing_folder(info, countries, "iso3"):
                 for categoryname in indicatorsets:
                     (
