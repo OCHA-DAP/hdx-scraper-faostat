@@ -91,10 +91,6 @@ addopts = """
     --color=yes
     --rootdir=.
     --junitxml=test-results.xml
-    --cov
-    --no-cov-on-fail
-    --cov-report=lcov
-    --cov-report=term-missing
 """
 
 # ----------------------------------------------------------------------------

@@ -4,6 +4,8 @@ Unit tests for FAOSTAT.
 
 """
 
+import csv
+import logging
 import shutil
 from os.path import basename, join
 from pathlib import Path
@@ -22,6 +24,7 @@ from hdx.scraper.faostat.pipeline import (
     download_indicatorsets,
     generate_dataset_and_showcase,
     get_countries,
+    log_latest_dates,
 )
 
 
@@ -353,3 +356,52 @@ production and trade and agri-environmental statistics.""",
             }
             file = "afg_faostat_food_security_indicators.csv"
             assert_files_same(join("tests", "fixtures", file), join(folder, file))
+
+    def test_log_latest_dates(self, tmp_path, caplog):
+        csv_path_fs = tmp_path / "FS.csv"
+        with open(csv_path_fs, "w", encoding="WINDOWS-1252", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["Area Code", "Year", "Months"])
+            writer.writeheader()
+            writer.writerows(
+                [
+                    # 2022 range, no month → sets max_year=2022, max_month=None
+                    {"Area Code": "2", "Year": "2020-2022", "Months": ""},
+                    # 2021 < 2022 → ignored
+                    {"Area Code": "2", "Year": "2021", "Months": "March"},
+                    # 2022, November → max_month becomes 11
+                    {"Area Code": "2", "Year": "2022", "Months": "November"},
+                    # 2022, Annual value treated as no month → max_month unchanged
+                    {"Area Code": "2", "Year": "2022", "Months": "Annual value"},
+                    # wrong country code → skipped
+                    {"Area Code": "99", "Year": "2025", "Months": ""},
+                    # empty year → skipped
+                    {"Area Code": "2", "Year": "", "Months": ""},
+                    # unparseable year → skipped
+                    {"Area Code": "2", "Year": "N/A", "Months": ""},
+                ]
+            )
+
+        # CB dataset: no rows match countrycodes → nothing logged for CB
+        csv_path_cb = tmp_path / "CB.csv"
+        with open(csv_path_cb, "w", encoding="WINDOWS-1252", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=["Area Code", "Year", "Months"])
+            writer.writeheader()
+            writer.writerows([{"Area Code": "99", "Year": "2024", "Months": ""}])
+
+        indicatorsets = {
+            "Food Security": [
+                {"DatasetCode": "FS", "path": str(csv_path_fs)},
+                # duplicate code — first path wins, this one must not be used
+                {"DatasetCode": "FS", "path": str(tmp_path / "nonexistent.csv")},
+            ],
+            "Balances": [
+                {"DatasetCode": "CB", "path": str(csv_path_cb)},
+            ],
+        }
+
+        with caplog.at_level(logging.INFO, logger="hdx.scraper.faostat.pipeline"):
+            log_latest_dates(indicatorsets, ["2"])
+
+        messages = [r.message for r in caplog.records]
+        assert "Latest date for FS: November 2022" in messages
+        assert not any("CB" in m for m in messages)
