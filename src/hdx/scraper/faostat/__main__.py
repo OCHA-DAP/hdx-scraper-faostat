@@ -95,11 +95,13 @@ def main(
                         )
                         showcase.create_in_hdx()
                         showcase.add_dataset(dataset)
+            logger.info("Run completed. Cleaning up...")
             for rows in indicatorsets.values():
                 for row in rows:
                     split_dir = row.get("split_dir")
                     if split_dir and exists(split_dir):
                         rmtree(split_dir)
+                        logger.info(f"Deleted {split_dir}.")
 
 
 if __name__ == "__main__":

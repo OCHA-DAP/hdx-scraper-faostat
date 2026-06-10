@@ -89,9 +89,11 @@ def download_indicatorsets(filelist_url, categories, retriever, folder):
             rename(extracted, filepath)
         if not retriever.save and not retriever.use_saved:
             unlink(zip_path)
+            logger.info(f"Extract completed - deleted {zip_path}.")
         add_row(row, filepath, categoryname, indicatorsetcode)
         if not retriever.save and not retriever.use_saved:
             unlink(filepath)
+            logger.info(f"{indicatorsetcode} completed - deleted {filepath}.")
     return indicatorsets
 
 
