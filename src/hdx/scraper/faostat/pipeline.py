@@ -10,7 +10,7 @@ Reads FAOSTAT JSON and creates datasets.
 import csv
 import logging
 from datetime import datetime
-from os import makedirs, rename
+from os import makedirs, rename, unlink
 from os.path import basename, exists, join
 from urllib.parse import urlsplit
 from zipfile import ZipFile
@@ -87,7 +87,11 @@ def download_indicatorsets(filelist_url, categories, retriever, folder):
         with ZipFile(zip_path, "r") as z:
             extracted = z.extract(filename, path=folder)
             rename(extracted, filepath)
+        if not retriever.save and not retriever.use_saved:
+            unlink(zip_path)
         add_row(row, filepath, categoryname, indicatorsetcode)
+        if not retriever.save and not retriever.use_saved:
+            unlink(filepath)
     return indicatorsets
 
 

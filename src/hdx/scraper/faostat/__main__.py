@@ -5,7 +5,8 @@ Top level script. Calls other functions that generate datasets that this script 
 """
 
 import logging
-from os.path import expanduser, join
+from os.path import exists, expanduser, join
+from shutil import rmtree
 
 from hdx.api.configuration import Configuration
 from hdx.facades.infer_arguments import facade
@@ -94,6 +95,11 @@ def main(
                         )
                         showcase.create_in_hdx()
                         showcase.add_dataset(dataset)
+            for rows in indicatorsets.values():
+                for row in rows:
+                    split_dir = row.get("split_dir")
+                    if split_dir and exists(split_dir):
+                        rmtree(split_dir)
 
 
 if __name__ == "__main__":
