@@ -29,21 +29,25 @@ description = "FAO statistics collates and disseminates food and agricultural st
 
 
 def split_csv_by_country(filepath, split_dir):
-    by_country = {}
-    with open(filepath, encoding="WINDOWS-1252", newline="") as f:
-        reader = csv.DictReader(f)
-        fieldnames = reader.fieldnames
-        for row in reader:
-            area_code = row.get("Area Code", "")
-            if area_code not in by_country:
-                by_country[area_code] = []
-            by_country[area_code].append(row)
-    for area_code, rows in by_country.items():
-        out_path = join(split_dir, f"{area_code}.csv")
-        with open(out_path, "w", encoding="WINDOWS-1252", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(rows)
+    handles = {}
+    writers = {}
+    try:
+        with open(filepath, encoding="WINDOWS-1252", newline="") as f:
+            reader = csv.DictReader(f)
+            fieldnames = reader.fieldnames
+            for row in reader:
+                area_code = row.get("Area Code", "")
+                if area_code not in handles:
+                    out_path = join(split_dir, f"{area_code}.csv")
+                    fh = open(out_path, "w", encoding="WINDOWS-1252", newline="")
+                    handles[area_code] = fh
+                    writer = csv.DictWriter(fh, fieldnames=fieldnames)
+                    writer.writeheader()
+                    writers[area_code] = writer
+                writers[area_code].writerow(row)
+    finally:
+        for fh in handles.values():
+            fh.close()
 
 
 def download_indicatorsets(filelist_url, categories, retriever, folder):
