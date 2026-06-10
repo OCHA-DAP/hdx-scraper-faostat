@@ -10,8 +10,8 @@ Reads FAOSTAT JSON and creates datasets.
 import csv
 import logging
 from datetime import datetime
-from os import rename
-from os.path import basename, join
+from os import makedirs, rename
+from os.path import basename, exists, join
 from urllib.parse import urlsplit
 from zipfile import ZipFile
 
@@ -28,6 +28,24 @@ logger = logging.getLogger(__name__)
 description = "FAO statistics collates and disseminates food and agricultural statistics globally. The division develops methodologies and standards for data collection, and holds regular meetings and workshops to support member countries develop statistical systems. We produce publications, working papers and statistical yearbooks that cover food security, prices, production and trade and agri-environmental statistics."
 
 
+def split_csv_by_country(filepath, split_dir):
+    by_country = {}
+    with open(filepath, encoding="WINDOWS-1252", newline="") as f:
+        reader = csv.DictReader(f)
+        fieldnames = reader.fieldnames
+        for row in reader:
+            area_code = row.get("Area Code", "")
+            if area_code not in by_country:
+                by_country[area_code] = []
+            by_country[area_code].append(row)
+    for area_code, rows in by_country.items():
+        out_path = join(split_dir, f"{area_code}.csv")
+        with open(out_path, "w", encoding="WINDOWS-1252", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
+
 def download_indicatorsets(filelist_url, categories, retriever, folder):
     indicatorsets = {}
     jsonresponse = retriever.download_json(filelist_url, "datasets_E.json")
@@ -37,8 +55,12 @@ def download_indicatorsets(filelist_url, categories, retriever, folder):
         for code in category.get("codes", {}):
             code_to_category[code] = categoryname
 
-    def add_row(row, filepath, categoryname):
+    def add_row(row, filepath, categoryname, code):
         row["path"] = filepath
+        split_dir = join(folder, f"{code}_split")
+        makedirs(split_dir, exist_ok=True)
+        split_csv_by_country(filepath, split_dir)
+        row["split_dir"] = split_dir
         dict_of_lists_add(indicatorsets, categoryname, row)
 
     for row in jsonresponse["Datasets"]["Dataset"]:
@@ -61,7 +83,7 @@ def download_indicatorsets(filelist_url, categories, retriever, folder):
         with ZipFile(zip_path, "r") as z:
             extracted = z.extract(filename, path=folder)
             rename(extracted, filepath)
-        add_row(row, filepath, categoryname)
+        add_row(row, filepath, categoryname, indicatorsetcode)
     return indicatorsets
 
 
@@ -218,7 +240,14 @@ def generate_dataset_and_showcase(
     categories = []
     for row in indicatorset:
         longname = row["DatasetName"]
-        url = row["path"]
+        split_dir = row.get("split_dir")
+        if split_dir:
+            url = join(split_dir, f"{countrycode}.csv")
+            if not exists(url):
+                logger.warning(f"{longname} for {countryname} has no data!")
+                continue
+        else:
+            url = row["path"]
         category = longname
         indicatorsetcode = row["DatasetCode"]
         description_part = (

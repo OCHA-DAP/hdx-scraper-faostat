@@ -127,7 +127,7 @@ class TestFaostat:
                             "Country": "Afghanistan",
                         }
                     ]
-                elif "FS.csv" in str(path):
+                elif "FS.csv" in str(path) or "FS_split" in str(path):
                     return [
                         "Iso3",
                         "StartDate",
