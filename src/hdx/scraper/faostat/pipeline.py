@@ -264,12 +264,9 @@ def generate_dataset_and_showcase(
             codes_config[indicatorsetcode].removeprefix("faostat-").replace("-", "_")
         )
         filename = f"{countryiso.lower()}_faostat_{description_part}.csv"
-        description = f"*{category}:*\n{row['DatasetDescription']}"
-        if category[-10:] == "Indicators":
-            name = category
-        else:
-            name = f"{category} data"
-        resourcedata = {"name": f"{name} for {countryname}", "description": description}
+        shortname = longname.split(": ", 1)[-1]
+        description = f"*{shortname}:*\n{row['DatasetDescription']}"
+        resourcedata = {"name": filename, "description": description}
         header_insertions = [(0, "EndDate"), (0, "StartDate"), (0, "Iso3")]
         headers, iterator = retriever.downloader.get_tabular_rows(
             url,
