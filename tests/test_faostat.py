@@ -326,8 +326,8 @@ class TestFaostat:
             resources = dataset.get_resources()
             assert resources == [
                 {
-                    "name": "Food Security and Nutrition: Suite of Food Security Indicators for Afghanistan",
-                    "description": "*Food Security and Nutrition: Suite of Food Security Indicators:*\nFor detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...",
+                    "name": "afg_faostat_food_security_indicators.csv",
+                    "description": "*Suite of Food Security Indicators:*\nFor detailed description of the indicators below see attached document: Average Dietary Supply Adequacy;...",
                     "format": "csv",
                 },
             ]
